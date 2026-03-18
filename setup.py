@@ -368,6 +368,12 @@ def main():
     backend_content = read_fragment(fragments_dir / f"backend-{args.backend}.md")
     objective_raw = read_fragment(fragments_dir / f"objective-{args.mode}.md")
 
+    # Generate starting point text based on language category
+    if language in PYTHON_LIKE:
+        starting_point = f"The reference implementation is in `solution/{language}/kernel.py`"
+    else:
+        starting_point = f"Stub templates are in `solution/{language}/`. Study `docs/reference.py` for the PyTorch reference implementation."
+
     # Pre-pass: substitute inline placeholders in objective fragment
     inline_vars = {
         "{{LANGUAGE_NAME}}": language_name,
@@ -375,6 +381,7 @@ def main():
         "{{GPU_NAME}}": gpu_name,
         "{{OPERATOR_DESCRIPTION}}": ctx["operator_description"],
         "{{OPERATOR}}": operator,
+        "{{STARTING_POINT}}": starting_point,
     }
     objective = objective_raw
     for key, val in inline_vars.items():
