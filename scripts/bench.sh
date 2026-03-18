@@ -7,13 +7,19 @@ if [ -z "$FIB_DATASET_PATH" ]; then
 fi
 cd "$(dirname "$0")/.."
 
-# Parse arguments: label (positional) and --force-baseline (flag)
+# Parse arguments: first positional arg is label, --force-baseline is a flag
 ARGS=()
+LABEL=""
 for arg in "$@"; do
     if [ "$arg" = "--force-baseline" ]; then
         ARGS+=(--force-baseline)
-    else
+    elif [[ "$arg" == --* ]]; then
+        echo "Warning: Unknown flag '$arg' ignored." >&2
+    elif [ -z "$LABEL" ]; then
+        LABEL="$arg"
         ARGS+=(--label "$arg")
+    else
+        echo "Warning: Extra positional argument '$arg' ignored (already using label '$LABEL')." >&2
     fi
 done
 

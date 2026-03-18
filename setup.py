@@ -310,11 +310,21 @@ def populate_child(child_dir, *, language, operator, gpu, mode, backend, kernel_
 
 
 def init_git(child_dir, operator, mode, backend, language):
-    """Initialize git repo in child directory."""
-    msg = f"Initial commit (spawned from kernel-opt-agent, operator={operator}, mode={mode}, backend={backend}, language={language})"
-    subprocess.run(["git", "init", "-q"], cwd=child_dir, check=True)
-    subprocess.run(["git", "add", "-A"], cwd=child_dir, check=True)
-    subprocess.run(["git", "commit", "-q", "-m", msg], cwd=child_dir, check=True)
+    """Initialize git repo in child directory. Skips gracefully if git is unavailable."""
+    if not shutil.which("git"):
+        print("Warning: git not found, skipping repository initialization.", file=sys.stderr)
+        return
+
+    try:
+        msg = f"Initial commit (spawned from kernel-opt-agent, operator={operator}, mode={mode}, backend={backend}, language={language})"
+        subprocess.run(["git", "init", "-q"], cwd=child_dir, check=True)
+        # Set repo-local user config so commit works without global git config
+        subprocess.run(["git", "config", "user.name", "kernel-opt-agent"], cwd=child_dir, check=True)
+        subprocess.run(["git", "config", "user.email", "kernel-opt-agent@local"], cwd=child_dir, check=True)
+        subprocess.run(["git", "add", "-A"], cwd=child_dir, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", msg], cwd=child_dir, check=True)
+    except (subprocess.CalledProcessError, OSError) as e:
+        print(f"Warning: git initialization failed ({e}), continuing without git.", file=sys.stderr)
 
 
 def main():
