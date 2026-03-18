@@ -5,11 +5,10 @@ It is NOT an optimization environment itself — use `setup.sh` to create one.
 
 ## Repository Purpose
 
-Provides scaffolding to create child environments where Claude Code autonomously optimizes
-a Triton kernel, using the flashinfer-bench SDK for evaluation.
+Provides scaffolding to create child environments where a Code Agent (e.g. Claude Code)
+autonomously optimizes a Triton kernel, using the flashinfer-bench SDK for evaluation.
 
-Supports any flashinfer-bench compatible dataset, including all 5 MLSys 2026 contest operators
-across 3 types (GDN, DSA_PAGED, MOE) and user-defined operators.
+Supports any flashinfer-bench compatible dataset, including user-defined operators.
 
 ## Directory Structure
 
@@ -20,10 +19,8 @@ kernel-opt-agent/
 ├── setup.sh                           # Creates isolated child environments
 ├── .gitignore                         # Git ignore rules (copied to children)
 ├── templates/
-│   ├── config.toml                    # config.toml template with {{OPERATOR}} placeholder
 │   ├── prompt.md                      # Default system prompt (embedded into CLAUDE.md at spawn)
 │   ├── info.md                        # Default Info.md template (copied to children)
-│   ├── launch.sh                      # launch.sh template (copied to children)
 │   ├── claude-md/
 │   │   ├── common.md                  # CLAUDE.md skeleton with placeholders
 │   │   ├── objective-scratch.md       # Objective for scratch mode
@@ -39,7 +36,7 @@ kernel-opt-agent/
     ├── bench_modal.sh                 # Modal benchmark script
     ├── run_local.py                   # Local A100 benchmark runner
     ├── run_modal.py                   # Modal B200 benchmark runner
-    └── pack_solution.py               # Pack kernel into submission format
+    └── pack_solution.py               # Pack kernel for evaluation
 ```
 
 ## How setup.sh Works
@@ -50,14 +47,13 @@ kernel-opt-agent/
 4. Runs `generate_context.py` to extract template variables (shapes, workload summary, etc.)
 5. Auto-increments run number -> creates `kernel-opt-agent-run-NNN[-label]/`
 6. Copies definition.json and workloads.jsonl from the dataset
-7. Generates `config.toml` from `templates/config.toml` with operator name substituted
+7. Auto-generates `config.toml` with operator name and default build settings
 8. Copies backend-specific bench script and runner (`run_local.py` or `run_modal.py`)
 9. Copies settings: `templates/settings/{backend}.json` -> `.claude/settings.local.json`
 10. Extracts reference kernel from definition.json (scratch) or copies user-provided kernel (existing)
 11. Copies `Info.md` (from `--info` or `templates/info.md`)
-12. Copies `launch.sh` from `templates/launch.sh`
-13. Assembles CLAUDE.md from templates: embeds prompt.md content + replaces all placeholders
-14. Initializes a git repo in the child directory
+12. Assembles CLAUDE.md from templates: embeds prompt.md content + replaces all placeholders
+13. Initializes a git repo in the child directory
 
 ## Template Placeholders
 
@@ -84,8 +80,7 @@ Templates use these placeholders (replaced at spawn time):
   - `environment-local.md` / `environment-modal.md` — backend-specific environment descriptions
 - **Agent permissions**: Edit `templates/settings/local.json` or `templates/settings/modal.json`
 - **Info template**: Edit `templates/info.md`
-- **Launch script**: Edit `templates/launch.sh`
-- **Config template**: Edit `templates/config.toml`
+- **Config defaults**: Edit the `config.toml` generation block in `setup.sh`
 - **Benchmark scripts**: Edit `scripts/bench.sh`, `scripts/bench_modal.sh`, etc.
 
 ## Key Constraints
@@ -93,4 +88,3 @@ Templates use these placeholders (replaced at spawn time):
 - Agents only edit `solution/triton/kernel.py` (and optionally `config.toml`)
 - `config.toml`: `destination_passing_style = false` by default
 - Operator data (definition.json, workloads.jsonl, reference kernel) comes from the dataset at spawn time, not from static files in this repo
-- `launch.sh` uses `--dangerously-skip-permissions` — the settings.local.json is kept as a fallback

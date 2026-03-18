@@ -1,6 +1,6 @@
 # kernel-opt-agent
 
-A Claude Code-based tool for automated GPU kernel optimization. Built on the [flashinfer-bench](https://github.com/flashinfer-ai/flashinfer-bench) SDK, it supports any flashinfer-bench compatible dataset — including all 5 contest operators and user-defined operators.
+A tool for automated GPU kernel optimization using Code Agents (e.g. Claude Code). Built on the [flashinfer-bench](https://github.com/flashinfer-ai/flashinfer-bench) SDK, it supports any flashinfer-bench compatible dataset, including user-defined operators.
 
 ## Quick Start
 
@@ -11,9 +11,12 @@ bash setup.sh
 # Create an optimization environment (local A100, from scratch)
 bash setup.sh --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64
 
-# Launch Claude Code (one-click)
+# Enter the child environment and start your code agent
 cd ../kernel-opt-agent-run-001
-bash launch.sh
+claude
+
+# Then send an optimization instruction, e.g.:
+# "Read CLAUDE.md and Info.md, then begin optimizing the kernel."
 ```
 
 ## Setup Options
@@ -56,7 +59,7 @@ bash setup.sh --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64 \
 
 1. `setup.sh --operator <name>` discovers the operator definition and workloads from the dataset
 2. Creates a child environment `kernel-opt-agent-run-NNN[-label]/` with everything the agent needs
-3. `launch.sh` starts Claude Code with `--dangerously-skip-permissions` and an initial prompt
+3. You start your code agent (e.g. `claude`) in the child environment
 4. The agent reads `CLAUDE.md` and `Info.md`, then iteratively optimizes the kernel
 
 ### Child Environment Structure
@@ -65,7 +68,6 @@ bash setup.sh --operator dsa_sparse_attention_h16_ckv512_kpe64_topk2048_ps64 \
 kernel-opt-agent-run-NNN/
 ├── CLAUDE.md                   # Auto-generated task spec (prompt + operator details)
 ├── Info.md                     # User-editable hints and context
-├── launch.sh                   # One-click Claude Code launcher
 ├── config.toml                 # Operator configuration
 ├── .gitignore
 ├── docs/
@@ -77,7 +79,7 @@ kernel-opt-agent-run-NNN/
 ├── scripts/
 │   ├── bench.sh                # Benchmark script
 │   ├── run_local.py/run_modal.py  # Benchmark runner
-│   └── pack_solution.py        # Pack kernel for submission
+│   └── pack_solution.py        # Pack kernel for evaluation
 ├── trajectory/                 # Auto-created, stores each bench run
 └── .claude/
     └── settings.local.json     # Permission fallback
@@ -140,7 +142,7 @@ The `score` field (= `FINAL SCORE` = mean speedup across all workloads) is the p
 **Local backend (default):**
 - NVIDIA A100-SXM4-40GB
 - Conda env `fi-bench` (Python 3.12, Triton 3.5.1, PyTorch 2.9.1+cu128, `flashinfer-bench`)
-- `FIB_DATASET_PATH` pointing to the trace set (default: `/root/FlashInfer/mlsys26-contest`), or use `--dataset`
+- `FIB_DATASET_PATH` pointing to the trace set, or use `--dataset`
 
 **Modal backend:**
 - Conda env `fi-bench` (with `modal` and `flashinfer-bench`)

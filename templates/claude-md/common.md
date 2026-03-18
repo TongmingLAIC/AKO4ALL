@@ -8,7 +8,7 @@
 
 {{OBJECTIVE}}
 
-The submission is `solution/triton/kernel.py` (and `config.toml` if switching to destination_passing_style).
+The evaluated files are `solution/triton/kernel.py` (and `config.toml` if switching to destination_passing_style).
 You may create temporary scripts for debugging or profiling, but only the above files are evaluated.
 **Do NOT** look at, reference, or search for any kernel files outside this directory.
 **Do NOT** use any web search tools to find other kernel implementations.
@@ -57,7 +57,7 @@ and `docs/workloads.jsonl` for all {{NUM_WORKLOADS}} benchmark workloads.
 ## Scoring
 
 **Final score = arithmetic mean of speedup_factor across all {{NUM_WORKLOADS}} workloads.**
-This is the metric used for ranking in the contest. The benchmark script prints this after each run.
+This is the primary optimization metric. The benchmark script prints this after each run.
 
 **All {{NUM_WORKLOADS}} workloads must PASS.** If any workload FAILS, the kernel is invalid and receives no score.
 Correctness is a hard gate — always ensure all workloads pass before focusing on performance.

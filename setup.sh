@@ -74,7 +74,12 @@ BASE_DIR="$(dirname "$PARENT_DIR")"
 if [[ -n "$DATASET_PATH" ]]; then
     FIB_DATASET_PATH="$DATASET_PATH"
 else
-    FIB_DATASET_PATH="${FIB_DATASET_PATH:-/root/FlashInfer/mlsys26-contest}"
+    FIB_DATASET_PATH="${FIB_DATASET_PATH:-}"
+fi
+if [[ -z "$FIB_DATASET_PATH" ]]; then
+    echo "Error: No dataset path specified."
+    echo "Set FIB_DATASET_PATH or use --dataset to specify the path to the flashinfer-bench trace set."
+    exit 1
 fi
 if [[ ! -d "$FIB_DATASET_PATH/definitions" ]]; then
     echo "Error: Dataset not found at $FIB_DATASET_PATH/definitions"
@@ -222,12 +227,18 @@ cp "$PARENT_DIR/scripts/pack_solution.py" "$CHILD_DIR/scripts/pack_solution.py"
 # --- Copy Info.md ---
 cp "$INFO_PATH" "$CHILD_DIR/Info.md"
 
-# --- Generate launch.sh ---
-cp "$PARENT_DIR/templates/launch.sh" "$CHILD_DIR/launch.sh"
-chmod +x "$CHILD_DIR/launch.sh"
+# --- Generate config.toml ---
+cat > "$CHILD_DIR/config.toml" <<TOML
+[solution]
+name = "${OPERATOR}-reference"
+definition = "${OPERATOR}"
+author = "user"
 
-# --- Generate config.toml from template ---
-sed "s/{{OPERATOR}}/$OPERATOR/g" "$PARENT_DIR/templates/config.toml" > "$CHILD_DIR/config.toml"
+[build]
+language = "triton"
+entry_point = "kernel.py::run"
+destination_passing_style = false
+TOML
 
 # --- Copy backend-specific scripts ---
 if [[ "$BACKEND" == "local" ]]; then
@@ -238,7 +249,7 @@ else
     cp "$PARENT_DIR/scripts/run_modal.py" "$CHILD_DIR/scripts/run_modal.py"
 fi
 
-# --- Generate .claude/settings.local.json (fallback for non --dangerously-skip-permissions usage) ---
+# --- Generate .claude/settings.local.json ---
 cp "$PARENT_DIR/templates/settings/${BACKEND}.json" "$CHILD_DIR/.claude/settings.local.json"
 
 # --- Copy kernel (and config.toml if colocated with kernel) ---
@@ -318,13 +329,15 @@ if [[ "$MODE" == "existing" ]]; then
     echo "  Kernel:   $KERNEL_PATH"
 fi
 echo ""
-echo "To start (one-click):"
-echo "  cd $CHILD_DIR && bash launch.sh"
-echo ""
-echo "Or manually:"
+echo "Next steps:"
 echo "  cd $CHILD_DIR"
-echo "  claude --dangerously-skip-permissions"
 echo ""
-echo "To run benchmark:"
-echo "  cd $CHILD_DIR && bash scripts/bench.sh"
+echo "  # Start your code agent, e.g.:"
+echo "  claude"
+echo ""
+echo "  # Then send an optimization instruction, e.g.:"
+echo "  # \"Read CLAUDE.md and Info.md, then begin optimizing the kernel.\""
+echo ""
+echo "To run benchmark manually:"
+echo "  bash scripts/bench.sh"
 echo "======================================="

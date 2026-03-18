@@ -1,9 +1,0 @@
-[solution]
-name = "{{OPERATOR}}-reference"
-definition = "{{OPERATOR}}"
-author = "FISAC"
-
-[build]
-language = "triton"
-entry_point = "kernel.py::run"
-destination_passing_style = false

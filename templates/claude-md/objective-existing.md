@@ -1,5 +1,5 @@
 Further optimize the Triton kernel in `solution/triton/kernel.py` for maximum speedup on ${GPU_SHORT}.
-This is a **{{OPERATOR_DESCRIPTION}}** operator for the MLSys 2026 FlashInfer contest.
+This is a **{{OPERATOR_DESCRIPTION}}** operator.
 
 The starting point is an **already partially-optimized Triton kernel**. Your job is to analyze it,
 identify performance bottlenecks, and further optimize it for maximum speedup while preserving correctness.

@@ -2,7 +2,7 @@
 Pack solution source files into solution.json.
 
 Reads configuration from config.toml and packs the appropriate source files
-(Triton or CUDA) into a Solution JSON file for submission.
+(Triton or CUDA) into a Solution JSON file for evaluation.
 """
 
 import sys
