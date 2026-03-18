@@ -41,7 +41,7 @@ Full definition: `docs/definition.json` | Workloads: `docs/workloads.jsonl` ({{N
 
 ## config.toml
 
-- `destination_passing_style = false`: `run()` allocates and returns output tensors.
+- `destination_passing_style = false`: your entry point function allocates and returns output tensors.
 - Set to `true` to receive pre-allocated outputs as additional arguments.
 
 ## Scoring & Workflow
