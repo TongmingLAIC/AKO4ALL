@@ -10,8 +10,8 @@ triton>=3.5.0
 # FlashInfer-Bench SDK (install from source or GitHub)
 # flashinfer-bench @ git+https://github.com/flashinfer-ai/flashinfer-bench.git@main
 
-# Profiling (requires CUDA 13.0+ driver)
-cupti-python>=13.0.0
+# Profiling (CUPTI requires CUDA 13.0+ driver; falls back to CUDA events on older drivers)
+cupti-python
 
 # Modal backend (optional, for cloud benchmarking)
 modal>=1.3.0

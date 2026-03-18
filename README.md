@@ -211,7 +211,7 @@ bash scripts/bench.sh --force-baseline    # Force re-profile reference
 ### Prerequisites
 
 - **NVIDIA GPU**: CUDA-capable GPU (A100, H100, B200, etc.)
-- **CUDA Toolkit**: 13.0+ recommended for CUPTI profiling (falls back to CUDA events on older versions)
+- **CUDA Driver**: 13.0+ recommended for CUPTI profiling via `cupti-python` (falls back to CUDA events on older drivers)
 - **Python**: 3.10 – 3.13 (3.12 recommended)
 - **Conda**: For environment management
 
@@ -278,14 +278,19 @@ nvidia-smi
 # Check flashinfer-bench
 python -c "import flashinfer_bench; print(flashinfer_bench.__version__)"
 
-# Check CUDA version (13.0+ recommended for CUPTI profiling; falls back to CUDA events)
-python -c "import torch; print(torch.version.cuda)"
+# Check CUPTI profiling support (requires CUDA 13.0+ driver; falls back to CUDA events)
+python -c "
+try:
+    from cupti import cupti; cupti.get_timestamp(); print('CUPTI: available')
+except Exception as e:
+    print(f'CUPTI: unavailable ({e}), will use CUDA events fallback')
+"
 
 # List available operators
 python setup.py --dataset /path/to/flashinfer-trace
 ```
 
-**⚠️ Note**: Local benchmarking uses CUPTI profiling by default, which requires **CUDA Toolkit 13.0+** (and a compatible driver). On older CUDA versions, profiling automatically falls back to CUDA events. For best accuracy, use CUDA 13.0+ or the Modal backend (`--backend modal`).
+**⚠️ Note**: Local benchmarking uses CUPTI profiling by default, which requires a **CUDA 13.0+ driver** and `cupti-python`. On older drivers (CUDA 12.x), profiling automatically falls back to CUDA events. For best accuracy, use a CUDA 13.0+ driver or the Modal backend (`--backend modal`).
 
 ## Requirements Summary
 
@@ -294,7 +299,7 @@ See **Installation** section above for detailed setup instructions.
 **Quick reference:**
 
 **Local backend (default):**
-- NVIDIA GPU with CUDA Toolkit 13.0+ recommended (CUPTI profiling; falls back to CUDA events)
+- NVIDIA GPU with CUDA 13.0+ driver recommended (CUPTI profiling; falls back to CUDA events)
 - Conda environment named `fi-bench` (hardcoded in `scripts/bench.sh`)
 - Environment variable `FIB_DATASET_PATH` pointing to the trace set
 

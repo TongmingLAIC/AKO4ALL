@@ -15,7 +15,7 @@ dependencies:
   - pip
   - pip:
       - triton>=3.5.0
-      - cupti-python>=13.0.0
+      - cupti-python
       - numpy>=1.24.0
       - torch-c-dlpack-ext
       - tvm-ffi-ct
