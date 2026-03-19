@@ -23,11 +23,34 @@ Read the kernel file(s). Identify:
 
 ### 3. Analyze the bench script
 
-Read the bench script. Identify:
+Read the bench script **and any libraries/configs it imports**. Identify:
+
+**Required**:
 - **Invocation**: how to run it (e.g., `python bench.py --kernel kernel.py`)
 - **How it references the kernel**: import path, command-line arg, hardcoded path, etc.
 - **Output format**: what it prints (latency, speedup, pass/fail, etc.)
 - **Environment needs**: conda env, pip deps, special setup
+
+**Investigate if possible** — look into the bench script's source, imported packages,
+and config objects. Include whatever you find in the child CLAUDE.md; if something
+is not available (e.g., opaque library), note that limitation so Session 2 doesn't
+waste time investigating:
+
+- **Correctness checking**: Does it validate output correctness? What tolerance
+  (atol/rtol)? Is it strict (1e-6) or loose (1e-2)? This determines how aggressively
+  the agent can trade precision for speed.
+- **Timing method**: How is kernel time measured? (Python time.time, CUDA events,
+  CUPTI tracing, etc.) Is there L2 cache flushing between iterations?
+- **Benchmark config**: Number of warmup runs, iterations, trials. How are results
+  aggregated (mean, median, min)?
+- **Workload parameters**: What varies across test cases (input sizes, shapes, dtypes)?
+  Can you extract the actual parameter values and their distribution?
+- **Failure diagnostics**: When a test fails, does the output include error messages or
+  tracebacks? If not, note this limitation.
+- **Reference baseline**: Is speedup measured against a reference implementation or a
+  fixed target? What level is the reference (naive Python, optimized CUDA, vendor library)?
+- **Infrastructure**: Does the benchmark run locally or remotely? Any known failure modes
+  (network, resource contention, image build)?
 
 ### 4. Confirm with user
 
