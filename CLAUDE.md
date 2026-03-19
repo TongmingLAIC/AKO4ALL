@@ -148,7 +148,28 @@ The generated CLAUDE.md must be **self-contained** — Session 2 will not read t
 
 5. **Editable files** — "Only modify files in `solution/`. Do NOT modify files in `bench/` or `scripts/`."
 
-6. **Workflow** — baseline -> analyze -> modify -> bench -> iterate -> rollback on regression -> stop when done.
+6. **Workflow** — use the following template, adapted to the specific kernel and benchmark:
+
+```markdown
+## Workflow
+
+1. Run `bash scripts/bench.sh "baseline"` to establish baseline performance
+2. Analyze baseline output: note workload count, latency distribution, and any
+   patterns (e.g., latency tiers suggesting different input sizes). This informs
+   which cases to prioritize.
+3. Read and analyze the kernel in `solution/`
+4. Identify optimization opportunities and rewrite/optimize the kernel
+5. Modify kernel -> `bash scripts/bench.sh "description"` -> analyze results -> iterate
+6. If a change causes FAILED:
+   a. Read the benchmark output to identify the failure type
+   b. For numerical errors: try targeted fixes (e.g., more fp32 accumulation)
+   c. For crashes: check shape mismatches, OOM, or compilation issues
+   d. If the cause is unclear or unfixable, revert: `git checkout solution/`
+7. Check per-workload breakdown to target the weakest cases
+8. Stop when no further improvements are found; summarize final results
+```
+
+**Note on optimization directions**: If including suggested optimization directions in the Workflow or Hints, only include directions that are actually relevant given the benchmark setup. For example, do not suggest L2 cache optimizations if the benchmark flushes L2, and do not suggest CUDA graph optimizations if kernel launch overhead is not the bottleneck.
 
 ### Child CLAUDE.md Conditional Sections
 
