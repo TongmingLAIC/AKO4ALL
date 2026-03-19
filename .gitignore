@@ -2,4 +2,4 @@ __pycache__/
 *.py[cod]
 *$py.class
 trajectory/
-kernel-opt-agent-run-*/
+akf-run-*/

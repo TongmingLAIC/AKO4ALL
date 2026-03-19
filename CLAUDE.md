@@ -1,4 +1,4 @@
-# kernel-opt-agent — Session 1 Action Guide
+# AutoKernelForge — Session 1 Action Guide
 
 You are operating in the **template repository**. Your job is to gather information from the user, analyze their kernel and benchmark script, and create an isolated child environment for optimization.
 
@@ -101,13 +101,13 @@ cd <child-dir> && claude
 ### Naming
 
 Create the child directory as a **sibling** of this repo (i.e., `../<name>`):
-- With label: `kernel-opt-agent-run-{label}`
-- Without: `kernel-opt-agent-run-{YYYYMMDD_HHMMSS}`
+- With label: `akf-run-{label}`
+- Without: `akf-run-{YYYYMMDD_HHMMSS}`
 
 ### Directory structure
 
 ```
-kernel-opt-agent-run-xxx/
+akf-run-xxx/
 ├── CLAUDE.md                   # Generated task spec (self-contained)
 ├── HINTS.md                    # Optimization hints
 ├── .gitignore
@@ -129,7 +129,7 @@ kernel-opt-agent-run-xxx/
 
    **Light adjustments allowed**: When copying the bench script, you may make small,
    targeted modifications to improve Session 2's experience. Mark each change with a
-   comment (e.g., `# [kernel-opt-agent] added verbose output`). Acceptable adjustments:
+   comment (e.g., `# [AutoKernelForge] added verbose output`). Acceptable adjustments:
    - Make tolerance values explicit (pass `atol`/`rtol` to config instead of relying on defaults)
    - Add workload parameter printing (e.g., print `num_tokens`, `num_pages` alongside results)
    - Add failure detail printing (error message or failure category when status != PASSED)
