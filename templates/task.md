@@ -13,7 +13,7 @@ You may create temporary scripts for debugging, but only the above files are eva
 
 ## Environment
 
-{{GPU}}
+- GPU: {{GPU_NAME}}
 {{BACKEND}}
 
 ## Benchmark

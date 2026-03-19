@@ -171,14 +171,17 @@ def read_fragment(path, fallback=None):
     sys.exit(f"Error: Fragment not found: {path}")
 
 
-def next_run_number(base_dir):
-    """Find the next available run number by scanning existing run directories."""
-    max_num = 0
-    for d in base_dir.glob("kernel-opt-agent-run-*/"):
-        m = re.search(r"kernel-opt-agent-run-(\d+)", d.name)
-        if m:
-            max_num = max(max_num, int(m.group(1)))
-    return max_num + 1
+def make_child_name(label):
+    """Generate child directory name.
+
+    With label: kernel-opt-agent-run-{label} (error if exists).
+    Without label: kernel-opt-agent-run-{YYYYMMDD_HHMMSS}.
+    """
+    from datetime import datetime
+
+    if label:
+        return f"kernel-opt-agent-run-{label}"
+    return f"kernel-opt-agent-run-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
 
 def render_template(task_text, placeholders):
@@ -188,7 +191,7 @@ def render_template(task_text, placeholders):
     Inline placeholders are substituted within lines.
     """
     block_keys = {
-        "{{OBJECTIVE}}", "{{GPU}}", "{{BACKEND}}",
+        "{{OBJECTIVE}}", "{{BACKEND}}",
         "{{SHAPE_SUMMARY}}", "{{WORKLOAD_SUMMARY}}",
     }
     inline_keys = [
@@ -374,7 +377,6 @@ def main():
 
     # Resolve fragments
     fragments_dir = PARENT_DIR / "templates" / "fragments"
-    gpu_content = read_fragment(fragments_dir / f"gpu-{gpu}.md", fallback=f"- GPU: {gpu_name}")
     backend_content = read_fragment(fragments_dir / f"backend-{args.backend}.md")
     objective_raw = read_fragment(fragments_dir / f"objective-{args.mode}.md")
 
@@ -400,7 +402,6 @@ def main():
     # Build full placeholder map
     placeholders = {
         "{{OBJECTIVE}}": objective,
-        "{{GPU}}": gpu_content,
         "{{BACKEND}}": backend_content,
         "{{SHAPE_SUMMARY}}": ctx["shape_summary"],
         "{{WORKLOAD_SUMMARY}}": ctx["workload_summary"],
@@ -412,12 +413,12 @@ def main():
         "{{GPU_NAME}}": gpu_name,
     }
 
-    # Auto-increment run number
-    run_num = next_run_number(BASE_DIR)
-    child_name = f"kernel-opt-agent-run-{run_num:03d}"
-    if args.label:
-        child_name += f"-{args.label}"
+    # Determine child directory name
+    child_name = make_child_name(args.label)
     child_dir = BASE_DIR / child_name
+    if child_dir.exists():
+        sys.exit(f"Error: Directory already exists: {child_dir}\n"
+                 f"Choose a different --name or remove the existing directory.")
 
     # Populate child environment
     populate_child(
