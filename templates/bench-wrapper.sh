@@ -8,7 +8,11 @@ LABEL="${1:-}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
 # --- Bench command (filled by Session 1) ---
+# Run benchmark without exiting on failure — we need trajectory even for failed runs
+set +e
 {{BENCH_COMMAND}}
+BENCH_EXIT=$?
+set -e
 # --- End bench command ---
 
 # --- Trajectory ---
@@ -21,3 +25,5 @@ mkdir -p "$TRAJ_DIR"
 cp -r solution/* "$TRAJ_DIR/"
 [ -f _bench_output.txt ] && mv _bench_output.txt "$TRAJ_DIR/output.txt"
 echo "Trajectory saved to: $TRAJ_DIR"
+
+exit $BENCH_EXIT
