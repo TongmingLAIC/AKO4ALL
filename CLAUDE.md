@@ -24,8 +24,6 @@ kernel-opt-agent/
 │   ├── fragments/
 │   │   ├── objective-scratch.md       # Objective for scratch mode
 │   │   ├── objective-existing.md      # Objective for existing mode
-│   │   ├── gpu-a100.md                # A100 hardware specs
-│   │   ├── gpu-b200.md                # B200 hardware specs
 │   │   ├── backend-local.md           # Local execution instructions
 │   │   └── backend-modal.md           # Modal execution instructions
 │   ├── stubs/
@@ -77,7 +75,7 @@ PYTHON_LIKE = {"python", "triton", "tilelang"}
    - `permissions`: Claude Code permissions (Bash, Edit, Read, Write, etc.)
 5. Auto-discovers operator definition from `<dataset>/definitions/*/<operator>.json`
 6. Calls `generate_context()` to extract template variables (shapes, workload summary, etc.)
-7. Auto-increments run number -> creates `kernel-opt-agent-run-NNN[-label]/`
+7. Creates `kernel-opt-agent-run-{label}/` (with `--name`) or `kernel-opt-agent-run-{YYYYMMDD_HHMMSS}/`
 8. Copies definition.json and workloads.jsonl from the dataset
 9. Auto-generates `config.toml` with operator name, language, GPU, and default build settings
 10. Copies backend-specific bench script and runner (`run_local.py` or `run_modal.py`)
@@ -100,7 +98,6 @@ Templates use these placeholders (replaced at spawn time):
 |-------------|--------|---------|
 | `{{LANGUAGE}}` | `--language` flag (default: triton) | `triton`, `cuda`, `cpp` |
 | `{{LANGUAGE_NAME}}` | derived from `--language` | `Triton`, `CUDA`, `C++` |
-| `{{GPU}}` | `fragments/gpu-{gpu}.md` content (or fallback `- GPU: {NAME}`) | (hardware specs line) |
 | `{{GPU_NAME}}` | `uppercase(--gpu)` | `A100`, `H100` |
 | `{{BACKEND}}` | `fragments/backend-{backend}.md` content | (execution instructions) |
 | `{{OBJECTIVE}}` | `fragments/objective-{mode}.md` content | (multi-line) |
@@ -114,7 +111,6 @@ Templates use these placeholders (replaced at spawn time):
 
 - **Task template**: Edit `templates/task.md` — the main template assembled into the child's task file
 - **Objective fragments**: Edit `templates/fragments/objective-scratch.md` or `objective-existing.md`
-- **GPU hardware specs**: Edit or add `templates/fragments/gpu-{name}.md` (optional; if missing, `{{GPU}}` falls back to `- GPU: {NAME}`)
 - **Backend execution instructions**: Edit `templates/fragments/backend-local.md` or `backend-modal.md`
 - **Agent config**: Edit `templates/agent/claude.json` (output filenames + permissions)
 - **Hints template**: Edit `templates/hints.md`
