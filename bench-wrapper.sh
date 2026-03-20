@@ -2,12 +2,12 @@
 # Benchmark wrapper with trajectory tracking
 # Usage: bash scripts/bench.sh [label]
 set -eo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
 
 LABEL="${1:-}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
-# --- Bench command (filled by Session 1) ---
+# --- Bench command ---
 # Run benchmark without exiting on failure — we need trajectory even for failed runs
 set +e
 {{BENCH_COMMAND}}

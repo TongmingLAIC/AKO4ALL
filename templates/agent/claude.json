@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(*)", "Edit(*)", "Read(*)", "Write(*)",
-      "Glob(*)", "Grep(*)", "Agent(*)",
-      "WebSearch(*)", "WebFetch(*)"
-    ]
-  }
-}
