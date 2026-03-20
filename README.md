@@ -1,4 +1,4 @@
-# AutoKernelForge
+# AKO4ALL: Agentic Kernel Optimization for All
 
 Automated GPU kernel optimization powered by coding agents. Provide any kernel — the agent iteratively rewrites it for maximum performance. Works with any coding agent; examples below use [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
@@ -24,7 +24,7 @@ Only a kernel is required — everything else is optional.
 1. Place your files:
 
 ```
-AutoKernelForge/
+AKO4ALL/
 ├── input/                       # Place your kernel files here
 │   ├── kernel.py                # Example — can be any file(s) or subdirectory
 │   └── reference.py             # Example — optional
@@ -38,7 +38,7 @@ AutoKernelForge/
 2. Run:
 
 ```bash
-cd AutoKernelForge && claude
+cd AKO4ALL && claude
 ```
 
 3. Start optimization (e.g., `Follow the instructions in TASK.md`).
@@ -56,6 +56,31 @@ Edit `HINTS.md` to guide the optimization. By default, web search is disabled �
 - Focus on the large-N workloads (N > 4096), they dominate runtime
 - Do not use inline PTX — keep it portable
 ```
+
+## Permissions
+
+The optimization loop involves running shell commands (compiling, benchmarking, profiling). By default, most coding agents prompt for approval on each command. To run fully unattended, grant the necessary permissions through your agent's configuration.
+
+For Claude Code, the simplest option is to bypass all permission checks:
+
+```bash
+cd AKO4ALL && claude --dangerously-skip-permissions
+```
+
+For more granular control, create `.claude/settings.local.json`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)", "Read(*)", "Write(*)", "Edit(*)",
+      "Glob(*)", "Grep(*)", "Agent(*)"
+    ]
+  }
+}
+```
+
+For other agents, consult their documentation on permission / auto-approve settings.
 
 ## FAQ
 

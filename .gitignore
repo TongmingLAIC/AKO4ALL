@@ -6,3 +6,4 @@ solution/
 bench.sh
 scripts/
 _bench_output.txt
+.claude/

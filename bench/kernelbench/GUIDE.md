@@ -1,6 +1,6 @@
 # KernelBench Default Benchmark
 
-Self-contained evaluation script for AutoKernelForge. Inlines core logic from [KernelBench](https://github.com/KernelBench/KernelBench) so no external dependency is needed.
+Self-contained evaluation script for AKO4ALL. Inlines core logic from [KernelBench](https://github.com/KernelBench/KernelBench) so no external dependency is needed.
 
 ## Setup
 

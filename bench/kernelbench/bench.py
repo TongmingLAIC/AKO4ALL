@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Self-contained KernelBench benchmark for AutoKernelForge.
+Self-contained KernelBench benchmark for AKO4ALL.
 
 Evaluates an optimized kernel (solution) against a reference kernel.
 Inlines core logic from KernelBench's eval.py and timing.py so no external

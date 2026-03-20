@@ -1,4 +1,4 @@
-# AutoKernelForge
+# AKO4ALL
 
 Optimize the kernel in `solution/` for maximum performance, measured by `bash bench.sh`. The optimized kernel must produce outputs identical to the golden reference.
 
