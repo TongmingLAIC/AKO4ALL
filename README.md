@@ -62,9 +62,9 @@ Edit `HINTS.md` to guide the optimization. Examples:
 - If 3 consecutive rounds show no improvement, use WebSearch for optimization ideas
 ```
 
-> **Tip:** The agent may rewrite your kernel in a different language (e.g., converting Triton to CUDA) if it believes that will improve performance. Add a constraint in `HINTS.md` if you want to keep the original language.
-
-Web search is enabled by default — the agent will search for optimization ideas online after 3 consecutive rounds without improvement. Edit `HINTS.md` to disable or adjust this behavior.
+> **Tips:**
+> - **Language switching** — The agent may rewrite your kernel in a different language (e.g., Triton → CUDA) to chase performance. Add a constraint in `HINTS.md` if you want to keep the original language.
+> - **Web search** — Web search is enabled by default. The agent will search for optimization ideas online after consecutive rounds without improvement. Edit `HINTS.md` to disable or adjust this behavior.
 
 ## Permissions
 
