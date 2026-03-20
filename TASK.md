@@ -6,10 +6,11 @@ Optimize the kernel in `solution/` for maximum performance, measured by `bash be
 
 Ensure the user has populated:
 - `input/` — kernel files and optionally a reference implementation
+- `context/` — reference materials **(optional)**
 - `bench/` — benchmark script and its dependencies **(optional — if empty, uses KernelBench eval)**
 
 Then:
-1. Read and analyze `input/`, `bench/`, and `HINTS.md`.
+1. Read and analyze `input/`, `context/`, `bench/`, and `HINTS.md`.
 2. **Detect bench mode:**
    - If `bench/` contains files besides `kernelbench/` → **custom bench mode** (user-provided benchmark, skip to step 3).
    - Otherwise (only `kernelbench/` present) → **default bench mode** (KernelBench eval). Read `bench/kernelbench/GUIDE.md` for setup instructions, then continue at step 3.
@@ -23,10 +24,11 @@ Then:
 ## Directory Layout
 
 - `input/` — user-provided original files, read-only. Must contain the kernel to optimize. May contain `reference.py` (or similar) as the correctness golden; if absent, the original kernel in `input/` serves as the golden reference.
+- `context/` — user-provided reference materials, read-only. Algorithm descriptions, papers, design docs, or other background knowledge for the agent. Optional.
 - `bench/` — benchmark script and dependencies **(optional)**. If empty, `bench/kernelbench/bench.py` is used (self-contained, no external KernelBench dependency).
 - `solution/` — editable, optimization target. Agent copies kernel here from `input/` and iterates.
 - `bench.sh` — generated benchmark wrapper, read-only.
 - `scripts/` — workspace for profiling/debug tools.
-- `HINTS.md` — optimization hints from the user.
+- `HINTS.md` — directives for the agent: optimization constraints, focus areas, and behavior controls.
 
 For default bench details (output format, CLI args, tolerances), see `bench/kernelbench/GUIDE.md`.

@@ -1,8 +1,9 @@
 # Hints
 
 - If 3 consecutive rounds show no improvement, use WebSearch to look for optimization ideas.
+- Write profiling and analysis scripts in `scripts/` to identify bottlenecks before optimizing blindly.
 
-<!-- Add optimization hints and constraints below, for example:
-- Known bottlenecks or optimization directions
+<!-- Add directives below, for example:
+- Optimization constraints or focus areas
 - Strategies to try or avoid
-- Constraints (e.g., precision requirements, portability) -->
+- Agent behavior controls -->

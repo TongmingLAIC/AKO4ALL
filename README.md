@@ -9,7 +9,8 @@ Only a kernel is required — everything else is optional.
 - **Kernel** (required) — The kernel to optimize. Can be a single file or a directory. Supports Triton, CUDA, C++, TileLang, Python, or any language that can be benchmarked. Must include at least one set of input shapes for testing (in the kernel itself, reference, bench script, or hints) — the agent will ask if none can be determined.
 - **Reference implementation** (optional) — Used as the correctness golden. If absent, the original kernel is used.
 - **Benchmark script** (optional) — Your own benchmark script, with an optional `GUIDE.md` describing its usage. If omitted, the built-in [KernelBench](https://github.com/ScalingIntelligence/KernelBench) evaluator is used automatically (no setup needed beyond PyTorch).
-- **Hints** (optional) — Optimization hints, constraints, and agent behavior controls (e.g., whether to allow web search).
+- **Context** (optional) — Reference materials for the agent: algorithm descriptions, papers, design docs, or any background knowledge that helps inform the optimization. Place in `context/`.
+- **Hints** (optional) — Directives for the agent: optimization constraints, focus areas, and behavior controls (e.g., whether to allow web search).
 
 ## Requirements
 
@@ -28,6 +29,9 @@ AKO4ALL/
 ├── input/                       # Place your kernel files here
 │   ├── kernel.py                # Example — can be any file(s) or subdirectory
 │   └── reference.py             # Example — optional
+├── context/                     # Place reference materials here (optional)
+│   ├── algorithm.md             # Example — algorithm description
+│   └── paper.pdf                # Example — related paper
 ├── bench/                       # Place your benchmark script here
 │   ├── bench.sh                 # Example — can be any file(s) or subdirectory
 │   ├── GUIDE.md                 # Optional
