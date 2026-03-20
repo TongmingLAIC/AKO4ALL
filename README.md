@@ -80,7 +80,8 @@ For more granular control, create `.claude/settings.local.json`:
   "permissions": {
     "allow": [
       "Bash(*)", "Read(*)", "Write(*)", "Edit(*)",
-      "Glob(*)", "Grep(*)", "Agent(*)"
+      "Glob(*)", "Grep(*)", "Agent(*)",
+      "WebFetch(*)", "WebSearch(*)"
     ]
   }
 }
