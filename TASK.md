@@ -21,6 +21,12 @@ Then:
 7. Generate `bench.sh` from `bench-wrapper.sh` — replace `{{BENCH_COMMAND}}` with the command from step 5.
 8. `git add -A && git commit` the initial state.
 
+## Optimization
+
+- Use `bash bench.sh` to measure performance.
+- Use `ncu` to profile kernels and identify bottlenecks — do not optimize blindly.
+- Leverage all available information: `context/`, `HINTS.md`, prior attempts, web search, etc.
+
 ## Directory Layout
 
 - `input/` — user-provided original files, read-only. Must contain the kernel to optimize. May contain `reference.py` (or similar) as the correctness golden; if absent, the original kernel in `input/` serves as the golden reference.

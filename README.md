@@ -12,15 +12,19 @@ Only a kernel is required — everything else is optional.
 - **Context** (optional) — Reference materials for the agent: algorithm descriptions, papers, design docs, or any background knowledge that helps inform the optimization.
 - **Hints** (optional) — Directives for the agent: optimization constraints, focus areas, and behavior controls (e.g., whether to allow web search).
 
-> **Notes:** At least one set of input shapes for testing must be determinable — hardcoded in the kernel, reference, or bench script, or provided as additional files in `input/` or `bench/`. The agent will ask if none can be found.
+> **Notes:** At least one set of input shapes for testing must be determinable — hardcoded in the kernel, reference, or bench script, or provided as additional files. The agent will ask if none can be found.
 
 ## Requirements
 
-- A coding agent (e.g., [Claude Code](https://docs.anthropic.com/en/docs/claude-code))
-- Git
+- A Coding Agent (e.g., [Claude Code](https://docs.anthropic.com/en/docs/claude-code))
+- NVIDIA Nsight Compute (`ncu`)
 - Benchmark environment:
   - Built-in evaluator: Python >= 3.10, PyTorch with CUDA, NVIDIA GPU
   - Custom bench script: whatever your script requires
+- Git
+
+> **Notes:** Verify all dependencies are installed before running. If something is missing, the agent may waste time troubleshooting or attempt to install it automatically.
+
 
 ## Quick Start
 
@@ -63,8 +67,10 @@ Edit `HINTS.md` to guide the optimization. Examples:
 ```
 
 > **Notes:**
-> - **Language switching** — The agent may rewrite your kernel in a different language (e.g., Triton → CUDA) to chase performance. Add a constraint in `HINTS.md` if you want to keep the original language.
-> - **Web search** — Web search is enabled by default. The agent will search for optimization ideas online after consecutive rounds without improvement. Edit `HINTS.md` to disable or adjust this behavior.
+> - **Language switching** — The agent may rewrite your kernel in a different language (e.g., Triton → CUDA) to chase performance.
+> - **Web search** — Web search is enabled by default. The agent will search for optimization ideas online after consecutive rounds without improvement.
+>
+> Edit `HINTS.md` to adjust these behaviors.
 
 ## Permissions
 
