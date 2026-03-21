@@ -23,7 +23,7 @@ Only a kernel is required — everything else is optional.
   - Custom bench script: whatever your script requires
 - Git
 
-> **Notes:** Verify all dependencies are installed before running. If something is missing, the agent may waste time troubleshooting or attempt to install it automatically.
+> **Note:** The agent may install packages (`pip install`, `apt install`, etc.) to resolve missing dependencies. Running in a container or virtual environment is recommended. To restrict this behavior, use [Hints](#hints) (e.g., `Do not install any packages`) or [Permissions](#permissions).
 
 
 ## Quick Start
@@ -57,14 +57,12 @@ The agent reads your files, copies the kernel to `solution/`, and enters a bench
 
 ## Hints
 
-Edit `HINTS.md` to guide the optimization. Examples:
+`HINTS.md` controls agent behavior. You can add directives such as:
 
-```markdown
-- Focus on the large-N workloads (N > 4096), they dominate runtime
-- Do not use inline PTX — keep it portable
-- Stay in Triton — do not rewrite the kernel in CUDA or other languages
-- If 3 consecutive rounds show no improvement, use WebSearch for optimization ideas
-```
+- **Optimization constraints** — focus areas, language restrictions, techniques to avoid
+- **Strategies** — specific approaches to try or skip
+- **Agent behavior** — web search, verbosity, iteration limits
+- **Dependency policies** — whether the agent may install packages
 
 > **Notes:**
 > - **Language switching** — The agent may rewrite your kernel in a different language (e.g., Triton → CUDA) to chase performance.

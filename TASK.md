@@ -14,12 +14,13 @@ Then:
 2. **Detect bench mode:**
    - If `bench/` contains files besides `kernelbench/` → **custom bench mode** (user-provided benchmark, skip to step 3).
    - Otherwise (only `kernelbench/` present) → **default bench mode** (KernelBench eval). Read `bench/kernelbench/GUIDE.md` for setup instructions, then continue at step 3.
-3. **Verify input shapes:** Confirm that at least one set of input shapes for testing can be determined from the kernel, reference, bench script, or `HINTS.md`. If no shapes can be found, **stop and ask the user** — do not guess.
+3. **Verify input shapes:** Confirm that at least one set of input shapes for testing can be determined from the kernel, reference, bench script, or additional files in `input/` / `bench/`. If no shapes can be found, **stop and ask the user** — do not guess.
 4. Create `solution/` and `scripts/` directories.
 5. Copy kernel files from `input/` to `solution/`.
 6. Build the bench command with adjusted paths, pipe through `2>&1 | tee _bench_output.txt`.
 7. Generate `bench.sh` from `bench-wrapper.sh` — replace `{{BENCH_COMMAND}}` with the command from step 5.
-8. `git add -A && git commit` the initial state.
+8. **Verify bench environment:** Run `bash bench.sh`. Since `solution/` is a copy of the reference, this validates the full toolchain. Expected result: `CORRECT=True`, speedup ≈ 1.0x. If it fails, diagnose the error and fix it before proceeding.
+9. `git add -A && git commit` the initial state.
 
 ## Optimization
 
