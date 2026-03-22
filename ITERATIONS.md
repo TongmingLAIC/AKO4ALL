@@ -4,7 +4,7 @@
 
 <!-- Append one row per iteration. Status: improved / no-change / regression / failed -->
 
-| Iter | Title | Speedup | Runtime (ms) | Status |
+| Iter | Title | Speedup(mean) | Runtime(mean) | Status |
 |------|-------|---------|--------------|--------|
 
 ## Iterations
@@ -18,9 +18,8 @@
 - **Bench:**
   - Compiled: True/False
   - Correct: True/False
-  - Runtime: ___ ms
-  - Ref Runtime: ___ ms
-  - Speedup: ___x
+  - Runtime: ___ ms (mean), ___ ~ ___ ms (min ~ max)
+  - Speedup: ___x (mean), ___ ~ ___x (min ~ max)
 - **Analysis:** Why it worked or failed
 - **Next:** What to try next
 -->

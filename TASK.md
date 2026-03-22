@@ -14,6 +14,7 @@ Then:
 2. **Initialize solution:** Create `solution/` and `scripts/` directories. Copy kernel files from `input/` to `solution/`.
 3. **Generate bench.sh:** Build the bench command with adjusted paths, pipe through `2>&1 | tee _bench_output.txt`. Replace `{{BENCH_COMMAND}}` in `bench-wrapper.sh` to produce `bench.sh`.
 4. **Verify environment:** Run `bash bench.sh`. Expected: `CORRECT=True`. If it fails, diagnose and fix before proceeding. Then `git add -A && git commit`.
+5. **Create branch:** Create and switch to a new branch (e.g., `opt/<kernel-name>`) before starting optimization.
 
 ## Optimization
 
