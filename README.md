@@ -53,7 +53,10 @@ cd AKO4ALL && claude
 
 ## What Happens
 
-The agent reads your files, copies the kernel to `solution/`, and enters a benchmark loop — optimizing, measuring, and reverting on failure. Each iteration is snapshot into `trajectory/` with the kernel source and benchmark output.
+1. **Setup** — The agent reads your files, creates an optimization branch, copies the kernel to `solution/`, generates `bench.sh`, and verifies correctness.
+2. **Profile** — Runs `ncu` on the baseline kernel to identify bottlenecks before optimizing.
+3. **Iterate** — Each iteration: modify kernel → benchmark → log results to `ITERATIONS.md` → git commit. The agent uses profiling data, web search, and prior results to guide each attempt.
+4. **Track** — Every iteration is saved to `trajectory/` with the kernel source and benchmark output.
 
 ## Hints
 
