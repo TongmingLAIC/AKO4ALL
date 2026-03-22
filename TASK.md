@@ -18,16 +18,16 @@ Then:
 ## Optimization
 
 - Use `bash bench.sh` to measure performance.
-- Use `ncu` to profile kernels and identify bottlenecks — do not optimize blindly.
+- Use `ncu` to profile and identify bottlenecks — do not optimize blindly.
 - Leverage all available information: `context/`, `HINTS.md`, prior attempts, web search, etc.
+- Follow stall rules defined in `HINTS.md`.
 
-### Iteration Tracking
+### Iteration Protocol
 
 Every modification to `solution/` code followed by a `bash bench.sh` run counts as one iteration — regardless of whether the result is an improvement, regression, or failure. Number iterations sequentially (1, 2, 3, …).
 
-After each optimization iteration:
+**Do NOT start the next iteration until ALL steps below are completed:**
 
 1. **Run benchmark** — `bash bench.sh iter-N` (label is required, must match `iter-N` format).
-2. **Update `ITERATIONS.md`** — append an entry (see template in that file).
+2. **Update `ITERATIONS.md`** 
 3. **Git commit** — `[iter N] Short description of optimization direction`.
-4. **Git tag** — `git tag iter-N`.

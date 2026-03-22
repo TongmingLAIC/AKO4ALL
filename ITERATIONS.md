@@ -1,13 +1,26 @@
 # Iteration Log
 
-<!-- Append one entry per optimization iteration. -->
+## Summary
 
-<!--
-## Iter N — Short title
+<!-- Append one row per iteration. Status: improved / no-change / regression / failed -->
 
-- **Direction:** What was tried
-- **Result:** Performance data (time, speedup vs baseline)
-- **Status:** improved / no-change / regression
-- **Analysis:** Why it worked or failed; what to try next
-- **Tag:** `iter-N`
+| Iter | Title | Speedup | Runtime (ms) | Status |
+|------|-------|---------|--------------|--------|
+
+## Iterations
+
+<!-- Template — copy for each new iteration:
+
+### Iter N — Short title
+
+- **Hypothesis:** Why this change is expected to help
+- **Changes:** What was modified
+- **Bench:**
+  - Compiled: True/False
+  - Correct: True/False
+  - Runtime: ___ ms
+  - Ref Runtime: ___ ms
+  - Speedup: ___x
+- **Analysis:** Why it worked or failed
+- **Next:** What to try next
 -->
