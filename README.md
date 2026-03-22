@@ -58,6 +58,30 @@ cd AKO4ALL && claude
 3. **Iterate** — Each iteration: modify kernel → benchmark → log results to `ITERATIONS.md` → git commit. The agent uses profiling data, web search, and prior results to guide each attempt.
 4. **Track** — Every iteration is saved to `trajectory/` with the kernel source and benchmark output.
 
+## Example: SOL-ExecBench
+
+[SOL-ExecBench](https://github.com/NVIDIA/SOL-ExecBench) contains 235 real-world DL kernel problems from NVIDIA. This example shows how to optimize any of them with AKO4ALL — no file copying needed.
+
+1. Clone both repositories and set up their environments.
+
+2. Start the agent in the AKO4ALL directory:
+
+```bash
+cd AKO4ALL && claude
+```
+
+3. Give it a prompt (replace `N` and the paths):
+
+```
+Follow the instructions in TASK.md. Save HINTS.md to memory.
+Optimize for up to N iterations. Stop early only if all viable approaches are exhausted.
+SOL-ExecBench is at <path/to/SOL-ExecBench>.
+Input is <path/to/SOL-ExecBench>/data/benchmark/L1/001_attention_softmax_dropout_value_matmul_backward.
+Benchmark with SOL-ExecBench.
+```
+
+The agent handles the rest — reads the problem definition, sets up the benchmark, and starts iterating.
+
 ## Hints
 
 `HINTS.md` controls agent behavior. You can add directives such as:
