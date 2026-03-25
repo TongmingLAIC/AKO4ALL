@@ -111,6 +111,12 @@ For other agents, consult their documentation on permission / auto-approve setti
 - **Model matters** — Model capability strongly influences optimization quality. We recommend [Claude Opus 4.6](https://docs.anthropic.com/en/docs/about-claude/models).
 - **Iteration limits** — By default, there is no iteration cap — the agent decides when to stop on its own. To enforce a limit, add a directive to `HINTS.md`, or your prompt (e.g., `Optimize for up to 30 iterations. Stop early only if all viable approaches are exhausted.`). For guidance on structuring open-ended agent tasks, see [autoresearch](https://github.com/karpathy/autoresearch)'s [`program.md`](https://github.com/karpathy/autoresearch/blob/master/program.md).
 
+## Anti-Cheat
+
+The agent is instructed via `TASK.md` to pursue genuine latency reduction and avoid reward hacking (stream injection, timing manipulation, returning uninitialized results, etc.). The built-in KernelBench evaluator also provides runtime defenses: excessive speedup flagging (>10× triggers a warning) and input shape protection (the solution's `get_inputs`/`get_init_inputs` are replaced by the reference's to prevent trivializing the workload).
+
+For stricter enforcement, add directives to `HINTS.md` or provide a custom bench script in `bench/` with built-in static analysis. KernelBench's [`kernel_static_checker.py`](https://github.com/ScalingIntelligence/KernelBench) is a good starting point.
+
 ## Example: SOL-ExecBench
 
 [SOL-ExecBench](https://github.com/NVIDIA/SOL-ExecBench) contains 235 real-world DL kernel problems from NVIDIA. This example shows how to optimize any of them with AKO4ALL — no file copying needed.
