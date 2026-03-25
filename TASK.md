@@ -2,6 +2,8 @@
 
 Optimize the kernel in `solution/` for maximum performance, measured by `bash scripts/bench.sh`. The optimized kernel must produce outputs identical to the golden reference.
 
+Your goal is genuine latency reduction — not maximizing the reported speedup ratio. Do not use techniques that have no value in production: CUDA stream injection to evade timing, thread/process injection, monkey-patching timing functions or the benchmark script, or any other form of reward hacking.
+
 ## Setup
 
 Ensure the user has populated:
