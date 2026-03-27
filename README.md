@@ -1,12 +1,27 @@
 # AKO4ALL: Agentic Kernel Optimization for All
 
-Automated GPU kernel optimization powered by coding agents. Provide any kernel — the agent iteratively rewrites it for maximum performance. Works with any coding agent; examples below use [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+<p align="center">
+  <a href="https://tongminglaic.github.io/AKO"><img src="https://img.shields.io/badge/Project-Page-blue" alt="Project Page"></a>
+  <a href="https://github.com/TongmingLAIC/AKO4FIB"><img src="https://img.shields.io/badge/GitHub-AKO4FIB-blue?logo=github" alt="AKO4FIB"></a>
+  <img src="https://img.shields.io/badge/Tech%20Report-Coming%20Soon-gray" alt="Tech Report">
+</p>
+
+<p align="center"><b>If you find our work useful, please consider giving us a star 🌟</b></p>
+
+Agentic Kernel Optimization for All — automated GPU kernel optimization powered by coding agents. Provide any kernel — the agent iteratively rewrites it for maximum performance. Works with any coding agent; examples below use [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+
+> Looking for standardized optimization against flashinfer-bench operators? Check out [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB).
 
 <p align="center">
   <img src="assets/sol_001_optimization.png" alt="AKO4ALL optimization trajectory on SOL-ExecBench L1-001" width="100%">
 </p>
 
 *Optimization trajectory on [SOL-ExecBench](https://github.com/NVIDIA/SOL-ExecBench) L1-001 (Attention Softmax+Dropout+Value Matmul Backward). 41 iterations, 8.93× average speedup over the PyTorch reference. Developed on A100-SXM4-80GB, ~2 hours total.*
+
+## News
+
+- **[2026.03.28]** [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB) is now open source!
+- **[2026.03.24]** AKO4ALL is released. Check out the [project page](https://tongminglaic.github.io/AKO).
 
 ## What You Provide
 
@@ -151,6 +166,10 @@ Yes. As long as your bench script runs from the command line and prints results 
 
 **Can I intervene during optimization?**
 Yes. You can interrupt the agent at any time to give guidance, discuss strategy, or manually edit files in `solution/`. Then tell the agent to continue.
+
+## Tech Report
+
+Coming soon — our tech report will detail why we advocate agentic approaches over fixed-pipeline methods for kernel optimization.
 
 ## Acknowledgments
 
