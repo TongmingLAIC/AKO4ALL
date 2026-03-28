@@ -1,4 +1,5 @@
-# AKO4ALL: Agentic Kernel Optimization for All
+<h1 align="center">AKO4ALL</h1>
+<p align="center"><b>Agentic Kernel Optimization for All</b></p>
 
 <p align="center">
   <a href="https://tongminglaic.github.io/AKO"><img src="https://img.shields.io/badge/Project-Page-blue" alt="Project Page"></a>
