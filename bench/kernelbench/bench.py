@@ -759,22 +759,25 @@ def rename_model_to_modelnew(src: str) -> str:
 
 def _find_tail_section(src: str) -> int:
     """
-    Find byte offset where the "tail section" begins (module-level code after
-    the class body: variables like N=2048, get_inputs(), get_init_inputs()).
+    Find character offset where the "tail section" begins (module-level code
+    after the *last* class body: variables like N=2048, get_inputs(),
+    get_init_inputs()).
     """
     lines = src.split("\n")
-    in_class = False
+    last_class_idx = -1
 
     for i, line in enumerate(lines):
         if re.match(r"^class\s+", line):
-            in_class = True
+            last_class_idx = i
+
+    if last_class_idx == -1:
+        return len(src)
+
+    for i in range(last_class_idx + 1, len(lines)):
+        line = lines[i]
+        if line.strip() == "" or (line and line[0] in (" ", "\t")):
             continue
-        if in_class:
-            if line.strip() == "" or (line and line[0] in (" ", "\t")):
-                continue
-            else:
-                # First non-indented, non-blank line after class = tail
-                return sum(len(l) + 1 for l in lines[:i])
+        return sum(len(l) + 1 for l in lines[:i])
 
     return len(src)
 
@@ -867,6 +870,74 @@ def get_init_inputs():
     assert "return []" in result, "Should use ref's get_init_inputs"
 
     print("Self-test PASSED: source transformation is correct.")
+
+    # --- Multi-class regression (issue #7) ---
+    ref_multi = '''import torch
+import torch.nn as nn
+
+class Helper(nn.Module):
+    def forward(self, x):
+        return x
+
+def helper_fn():
+    pass
+
+class Model(nn.Module):
+    def __init__(self):
+        super(Model, self).__init__()
+
+    def forward(self, x):
+        return x * 2
+
+N = 2048
+
+def get_inputs():
+    return [torch.randn(N, N)]
+
+def get_init_inputs():
+    return []
+'''
+    sol_multi = '''import torch
+import torch.nn as nn
+
+class Helper(nn.Module):
+    def forward(self, x):
+        return x
+
+def helper_fn():
+    pass
+
+class Model(nn.Module):
+    def __init__(self):
+        super(Model, self).__init__()
+
+    def forward(self, x):
+        return x * 3
+
+N = 4096
+
+def get_inputs():
+    return [torch.randn(N)]
+
+def get_init_inputs():
+    return [42]
+'''
+    result_multi = prepare_solution_source(ref_multi, sol_multi)
+    assert "class Helper(" in result_multi, "Helper class should be preserved"
+    assert "class ModelNew(" in result_multi, "ModelNew rename failed (multi-class)"
+    assert "def helper_fn" in result_multi, "helper_fn should be preserved"
+    assert "N = 2048" in result_multi, "Should use ref's N = 2048 (multi-class)"
+    n_count_m = len(re.findall(r"^N = ", result_multi, re.MULTILINE))
+    assert n_count_m == 1, f"Expected 1 N assignment (multi), got {n_count_m}"
+    assert "N = 4096" not in result_multi, "Solution's N must not leak (multi-class)"
+    assert "return [42]" not in result_multi, "Solution's get_init_inputs must not leak"
+    print("Self-test PASSED: multi-class transformation is correct (issue #7).")
+
+    # --- No-class edge case ---
+    no_class_src = "import torch\nN = 1\n"
+    assert _find_tail_section(no_class_src) == len(no_class_src), \
+        "No class: entire source should be kept (offset == len)"
+    print("Self-test PASSED: no-class edge case.")
 
 
 ###############################################################################
