@@ -11,7 +11,7 @@
 
 Agentic Kernel Optimization for All — automated GPU kernel optimization powered by coding agents. Provide any kernel — the agent iteratively rewrites it for maximum performance. Works with any coding agent; examples below use [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
-> Looking for standardized optimization against flashinfer-bench operators? Check out [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB).
+> Looking for standardized optimization against flashinfer-bench operators? Check out [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB) (coming soon).
 
 <p align="center">
   <img src="assets/sol_001_optimization.png" alt="AKO4ALL optimization trajectory on SOL-ExecBench L1-001" width="100%">
@@ -21,7 +21,7 @@ Agentic Kernel Optimization for All — automated GPU kernel optimization powere
 
 ## News
 
-- 🎉 **[2026.03.28]** [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB) is now open source!
+- 📢 **[2026.03.28]** [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB) coming soon — will be open-sourced after the [MLSys 2026 competition](https://mlsys26.flashinfer.ai/).
 - 🚀 **[2026.03.24]** AKO4ALL is released. Check out the [project page](https://tongminglaic.github.io/AKO).
 
 ## What You Provide
