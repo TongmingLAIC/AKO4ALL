@@ -280,11 +280,18 @@ def get_error_name(e: Exception) -> str:
 
 
 def load_original_model_and_inputs(
-    model_original_src: str, context: dict
+    model_original_src: str, context: dict, source_path: Optional[str] = None
 ) -> tuple:
     """
     exec() the reference source. Returns (Model, get_init_inputs, get_inputs).
+
+    If source_path is given, it is injected as __file__ in the exec context so
+    the loaded code can use os.path.dirname(__file__) to find sibling files
+    (e.g., multi-file CUDA solutions loaded via torch.utils.cpp_extension.load).
     """
+    if source_path is not None:
+        context["__file__"] = os.path.abspath(source_path)
+
     try:
         compile(model_original_src, "<string>", "exec")
     except SyntaxError as e:
@@ -305,9 +312,21 @@ def load_original_model_and_inputs(
 
 
 def load_custom_model(
-    model_custom_src: str, context: dict, build_directory: str = None
+    model_custom_src: str,
+    context: dict,
+    build_directory: str = None,
+    source_path: Optional[str] = None,
 ) -> Optional[nn.Module]:
-    """Load ModelNew via exec() (CUDA backend)."""
+    """Load ModelNew via exec() (CUDA backend).
+
+    If source_path is given, it is injected as __file__ in the exec context so
+    solutions that use `os.path.dirname(__file__)` (e.g., multi-file
+    `torch.utils.cpp_extension.load(sources=[...])`) can find their sibling
+    files.
+    """
+    if source_path is not None:
+        context["__file__"] = os.path.abspath(source_path)
+
     if build_directory:
         context["BUILD_DIRECTORY"] = build_directory
         model_custom_src = (
@@ -503,6 +522,8 @@ def eval_kernel_against_ref(
     excessive_speedup_threshold: float = 10,
     get_inputs_override: Optional[callable] = None,
     get_init_inputs_override: Optional[callable] = None,
+    ref_path: Optional[str] = None,
+    sol_path: Optional[str] = None,
 ) -> KernelExecResult:
     """
     Evaluate a custom kernel against the reference model.
@@ -512,6 +533,14 @@ def eval_kernel_against_ref(
 
     If `get_inputs_override` / `get_init_inputs_override` are provided, they
     take precedence over any definitions found inside `original_model_src`.
+
+    If `ref_path` / `sol_path` are provided, they are injected as `__file__`
+    into the respective exec contexts so code that uses
+    `os.path.dirname(__file__)` to find sibling files (e.g. multi-file
+    `cpp_extension.load(sources=[...])`) works. Only effective for the CUDA
+    backend (exec-based loader); Triton/TileLang/CuTe backends load via
+    tempfile so `__file__` already points at a real `.py` (but the tempfile
+    path, not the original source).
     """
     assert torch.cuda.is_available(), "CUDA is not available, cannot run Eval"
 
@@ -549,7 +578,7 @@ def eval_kernel_against_ref(
         print("[Eval] Loading Original Model")
 
     Model, ref_get_init_inputs, ref_get_inputs = load_original_model_and_inputs(
-        original_model_src, context
+        original_model_src, context, source_path=ref_path
     )
 
     # Override chain: explicit override > definition inside reference file.
@@ -599,7 +628,9 @@ def eval_kernel_against_ref(
                 custom_model_src, entry_point="ModelNew"
             )
         else:
-            ModelNew = load_custom_model(custom_model_src, context, build_dir)
+            ModelNew = load_custom_model(
+                custom_model_src, context, build_dir, source_path=sol_path
+            )
         torch.cuda.synchronize(device=device)
     except Exception as e:
         print(
@@ -1105,6 +1136,8 @@ def main():
         precision=precision,
         get_inputs_override=get_inputs_override,
         get_init_inputs_override=get_init_inputs_override,
+        ref_path=args.ref,
+        sol_path=args.solution,
     )
 
     if result is None:
