@@ -40,9 +40,13 @@ Only a kernel is required — everything else is optional.
 ## Requirements
 
 - A Coding Agent (e.g., [Claude Code](https://docs.anthropic.com/en/docs/claude-code))
-- NVIDIA Nsight Compute (`ncu`)
+- NVIDIA Nsight Compute (`ncu`) — version must match your CUDA toolkit / PyTorch
+  CUDA build; mismatched versions error with `cudaErrorCallRequiresNewerDriver`.
+  If `ncu` is unrunnable in your environment, the loop still proceeds (the agent
+  skips profiling and reasons from runtime stats).
 - Benchmark environment:
-  - Built-in evaluator: Python >= 3.10, PyTorch with CUDA, NVIDIA GPU
+  - Built-in evaluator: Python **>= 3.10** (uses `match` statements; 3.9 errors
+    with `SyntaxError` at `bench.py` import time), PyTorch with CUDA, NVIDIA GPU
   - Custom bench script: whatever your script requires
 - Git
 
