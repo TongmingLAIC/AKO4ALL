@@ -40,6 +40,13 @@ Whether the workspace follows AKO4ALL's `input/` / `context/` / `bench/` naming 
 
 If the user's prompt + filesystem give you confidence about every required item, **don't ask** — skip straight to presenting the plan. Ask only when a piece's role is genuinely ambiguous (a kernel-shaped file with no obvious reference, two files that could both be the kernel, an input data file in an unfamiliar format you need permission to wire up a custom way, etc.). When in doubt, asking is cheaper than guessing wrong.
 
+**When the workspace is empty** and the user gives a bare optimize prompt with no
+kernel anywhere on disk, ask where the kernel is. You may offer a demo/sample
+kernel (a small built-in ReLU or matmul) as one option among others ("provide a
+path" / "paste the code" / "use a demo kernel") so the user can see the loop run
+end-to-end. This is "use an existing kernel to demo the loop" — distinct from
+"write a new kernel from scratch", which is excluded under "Does NOT apply when".
+
 ### Always present the resolved plan before running anything
 
 Whether you asked the user or not, list back what you decided — so the user can correct you even when you didn't think you needed to ask:
