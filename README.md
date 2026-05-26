@@ -9,7 +9,7 @@
 
 <p align="center"><b>If you find our work useful, please consider giving us a star 🌟</b></p>
 
-Agentic Kernel Optimization for All — automated GPU kernel optimization powered by coding agents. Provide any kernel — the agent iteratively rewrites it for maximum performance. Works with any coding agent; examples below use [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+Agentic Kernel Optimization for All — automated GPU kernel optimization powered by coding agents. Provide any kernel — the agent iteratively rewrites it for maximum performance. Ships as a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill; other coding agents can drive the loop by following `SKILL.md` as a protocol document.
 
 > Looking for standardized optimization against flashinfer-bench operators? Check out [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB) (coming soon).
 
@@ -30,11 +30,12 @@ Only a kernel is required — everything else is optional.
 
 - **Kernel** (required) — The kernel to optimize. Can be a single file or a directory. Supports Triton, CUDA, C++, TileLang, Python, or any language that can be benchmarked.
 - **Reference implementation** (optional) — Used as the correctness golden. If absent, the original kernel is used.
+- **Inputs** (optional) — Sample input data, in any form: hardcoded inside the kernel/reference, a separate Python file defining `get_inputs()`, or raw data files (`.npz`, `.bin`, shape lists, etc.) that the agent wires up itself. The agent assembles whatever is provided into something the bench script can call.
 - **Benchmark script** (optional) — Your own benchmark script. A `GUIDE.md` can be included to describe its usage. If no benchmark script is provided, the built-in [KernelBench](https://github.com/ScalingIntelligence/KernelBench) evaluator is used automatically (no setup needed beyond PyTorch).
 - **Context** (optional) — Reference materials for the agent: algorithm descriptions, papers, design docs, or any background knowledge that helps inform the optimization.
 - **Hints** (optional) — Directives for the agent: optimization constraints, focus areas, and behavior controls (e.g., whether to allow web search).
 
-> **Notes:** At least one set of input shapes for testing must be determinable — hardcoded in the kernel, reference, or bench script, or provided as additional files. The agent will ask if none can be found.
+> **Notes:** At least one set of input shapes must be determinable from what you provide. If none can be found, the agent will ask.
 
 ## Requirements
 
@@ -50,28 +51,44 @@ Only a kernel is required — everything else is optional.
 
 ## Quick Start
 
-1. Place your files:
-
-```
-AKO4ALL/
-├── input/                       # Place your kernel files here
-│   ├── kernel.py                # Example — can be any file(s) or subdirectory
-│   └── reference.py             # Optional
-├── bench/                       # Place your benchmark script here (optional)
-│   ├── bench.sh                 # Example — can be any file(s) or subdirectory
-│   ├── GUIDE.md                 # Optional
-│   └── kernelbench/             # Built-in evaluator — delete if using your own
-├── context/                     # Place reference materials here (optional)
-├── HINTS.md
-```
-
-2. Run (from the environment where dependencies are installed):
+1. **Install the skill** — clone the repo directly into Claude Code's skills directory:
 
 ```bash
-cd AKO4ALL && claude
+git clone https://github.com/TongmingLAIC/AKO4ALL.git ~/.claude/skills/ako4all
 ```
 
-3. Start optimization (e.g., `Follow the instructions in TASK.md`).
+Or, if you already have it cloned somewhere else, symlink it (replace the path with where your clone lives):
+
+```bash
+ln -s /path/to/AKO4ALL ~/.claude/skills/ako4all
+```
+
+2. **Open Claude Code in any working directory** (from an environment with PyTorch + CUDA + `ncu` installed).
+
+3. **Tell Claude what to optimize.** Any of these phrasings will trigger the skill:
+   - "Optimize the kernel in `<path>`"
+   - "Speed up this CUDA / Triton kernel ..."
+   - "Run AKO on the kernel at `<path>`"
+
+The skill inspects your workspace, asks if anything is unclear, presents its resolved plan, and starts the loop.
+
+### Optional workspace layout
+
+If you want to organize your inputs ahead of time, the conventional layout the skill recognizes is:
+
+```
+<workspace>/
+├── input/                       # Kernel files (single file or directory)
+│   ├── kernel.py
+│   ├── reference.py             # Optional
+│   └── inputs.py / data.npz ... # Optional — input data, any format
+├── bench/                       # Your own benchmark script (optional)
+│   └── ...
+├── context/                     # Reference materials (optional)
+└── HINTS.md                     # Agent directives (optional)
+```
+
+These names are **conventions, not requirements** — if your files are organized differently, just point Claude at them in the prompt. The skill respects your layout.
 
 ## What Happens
 
@@ -102,7 +119,7 @@ The optimization loop involves running shell commands (compiling, benchmarking, 
 For Claude Code, the simplest option is to bypass all permission checks:
 
 ```bash
-cd AKO4ALL && claude --dangerously-skip-permissions
+claude --dangerously-skip-permissions
 ```
 
 For more granular control, create `.claude/settings.local.json`:
@@ -129,7 +146,7 @@ For other agents, consult their documentation on permission / auto-approve setti
 
 ## Anti-Cheat
 
-The agent is instructed via `TASK.md` to pursue genuine latency reduction and avoid reward hacking (stream injection, timing manipulation, returning uninitialized results, etc.). The built-in KernelBench evaluator also provides runtime defenses: excessive speedup flagging (>10× triggers a warning) and input shape protection (the solution's `get_inputs`/`get_init_inputs` are replaced by the reference's to prevent trivializing the workload).
+The skill instructs the agent to pursue genuine latency reduction and avoid reward hacking (stream injection, timing manipulation, returning uninitialized results, etc.). The built-in KernelBench evaluator also provides runtime defenses: excessive speedup flagging (>10× triggers a warning) and an input boundary — the solution's module-level tail is stripped before evaluation, so `get_inputs` / `get_init_inputs` always come from the reference or the `--inputs` file and the solution cannot influence the workload it is tested against. When inputs are loaded from external data files, their on-disk integrity depends on the filesystem; the agent is instructed not to modify them from within `solution/`.
 
 For stricter enforcement, add directives to `HINTS.md` or provide a custom bench script in `bench/` with built-in static analysis. KernelBench's [`kernel_static_checker.py`](https://github.com/ScalingIntelligence/KernelBench) is a good starting point.
 
@@ -137,25 +154,25 @@ For stricter enforcement, add directives to `HINTS.md` or provide a custom bench
 
 [SOL-ExecBench](https://github.com/NVIDIA/SOL-ExecBench) contains 235 real-world DL kernel problems from NVIDIA. This example shows how to optimize any of them with AKO4ALL — no file copying needed.
 
-1. Clone both repositories. Set up the SOL-ExecBench environment and install `ncu` if needed.
+1. Install the skill (see [Quick Start](#quick-start)). Clone SOL-ExecBench separately, set up its environment, and install `ncu` if needed.
 
-2. Activate the SOL-ExecBench environment, then start the agent in the AKO4ALL directory:
+2. Activate the SOL-ExecBench environment, open Claude Code in any working directory:
 
 ```bash
-cd AKO4ALL && claude
+claude
 ```
 
 3. Give it a prompt (replace `N` and the paths):
 
 ```
-Follow the instructions in TASK.md. Save HINTS.md to memory.
+Optimize the kernel at <path/to/SOL-ExecBench>/data/benchmark/L1/001_attention_softmax_dropout_value_matmul_backward using AKO.
+Save HINTS.md to memory.
 Optimize for up to N iterations. Stop early only if all viable approaches are exhausted.
 Bench is SOL-ExecBench: <path/to/SOL-ExecBench>.
-Input is <path/to/SOL-ExecBench>/data/benchmark/L1/001_attention_softmax_dropout_value_matmul_backward.
 Benchmark with SOL-ExecBench. All dependencies for SOL-ExecBench are already installed — use them directly.
 ```
 
-The agent handles the rest — reads the problem definition, sets up the benchmark, and starts iterating.
+The skill triggers, inspects the problem definition, sets up the benchmark, and starts iterating.
 
 ## FAQ
 
