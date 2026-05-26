@@ -573,11 +573,8 @@ def eval_kernel_against_ref(
         metadata["error_message"] = msg
         return KernelExecResult(compiled=False, metadata=metadata)
 
-    if get_init_inputs is None:
-        get_init_inputs = lambda: []
-
     set_seed(seed_num)
-    init_inputs = get_init_inputs()
+    init_inputs = [] if get_init_inputs is None else get_init_inputs()
     init_inputs = [
         _process_input_tensor(x, device, backend, precision) for x in init_inputs
     ]
@@ -997,12 +994,16 @@ def main():
         description="Evaluate optimized kernel against reference (self-contained KernelBench)"
     )
     parser.add_argument(
-        "--ref", required=True, help="Path to reference kernel (with class Model)"
+        "--ref",
+        default=None,
+        help="Path to reference kernel (with class Model). "
+             "Required unless --self-test is given.",
     )
     parser.add_argument(
         "--solution",
-        required=True,
-        help="Path to optimized kernel (with class Model - renamed automatically)",
+        default=None,
+        help="Path to optimized kernel (with class Model - renamed automatically). "
+             "Required unless --self-test is given.",
     )
     parser.add_argument(
         "--inputs",
@@ -1055,6 +1056,9 @@ def main():
     if args.self_test:
         _self_test()
         sys.exit(0)
+
+    if args.ref is None or args.solution is None:
+        parser.error("--ref and --solution are required (unless --self-test is given)")
 
     precision_map = {
         "float32": torch.float32,
