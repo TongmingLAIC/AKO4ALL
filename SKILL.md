@@ -98,7 +98,9 @@ added, replaced, or silently dropped their directives. Always name the **source*
 
 ## Iteration protocol
 
-Every modification to `solution/` followed by a bench run = one iteration. Number sequentially (1, 2, 3, …). **Do NOT start the next iteration until all three steps below are done — skipping any breaks the trajectory log:**
+Every modification to `solution/` followed by a bench run = one iteration. Number sequentially (1, 2, 3, …). **All three steps below MUST complete before you do anything else — including starting the next iteration, replying to the user, or yielding the turn. Skipping any breaks the trajectory log.**
+
+A failed or partial bench is still an iteration — complete steps 2 and 3 anyway. Silent abandonment loses the trajectory and makes the next iter's analysis harder.
 
 1. `bash scripts/bench.sh iter-N` — label is required, must match `iter-N` format.
 2. Append a structured entry to `ITERATIONS.md` (template inside that file).
