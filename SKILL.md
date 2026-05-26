@@ -59,6 +59,28 @@ If anything still feels uncertain at this point, **stop and ask**. Otherwise pro
 
 When copying scaffold (`bench-wrapper.sh`, `bench/kernelbench/`, starter `HINTS.md` / `ITERATIONS.md`) from this skill's own directory into the workspace, **do not overwrite** files that already exist — the user may have edited `HINTS.md`, or `ITERATIONS.md` may carry prior iteration history. Copy only what's missing.
 
+### Persisting user-supplied hints
+
+The user may supply behavior directives in two ways:
+- **Inline in the prompt** — e.g., "do not use shared memory" or "prefer Triton".
+- **External file reference** — e.g., "follow rules in /tmp/x.md" or "see hints.md".
+
+In **both cases**, merge those directives into `HINTS.md` alongside the defaults
+(do not overwrite the defaults). `HINTS.md` is the persistence layer — directives
+that only live in the current session's plan are lost on resume.
+
+### Surfacing HINTS.md changes
+
+Whenever you merge directives into `HINTS.md`, tell the user explicitly what
+happened. Example phrasings:
+
+> "I merged your 2 directives into HINTS.md alongside the 2 default entries."
+> "I added the 3 rules from /tmp/user-hints.md to HINTS.md; the 2 defaults are preserved."
+
+Without this acknowledgment the user can't tell from your reply whether you
+added, replaced, or silently dropped their directives. Always name the **source**
+("from your prompt" / "from /tmp/x.md") and the **count of defaults retained**.
+
 ## Workflow
 
 1. **Analyze inputs.** Building on the inventory above, confirm `class Model` and `get_inputs()` can be assembled for default bench mode; if not, **stop and ask the user**. See `bench/kernelbench/GUIDE.md` for the input assembly contract (KernelBench-format input / raw kernel / kernel + separate data file / external path patterns).
