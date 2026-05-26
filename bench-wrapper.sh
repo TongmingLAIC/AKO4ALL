@@ -2,7 +2,7 @@
 # Benchmark wrapper with trajectory tracking
 # Usage: bash scripts/bench.sh [label]
 set -eo pipefail
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 LABEL="${1:-}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
