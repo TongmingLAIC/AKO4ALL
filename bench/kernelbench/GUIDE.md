@@ -68,11 +68,28 @@ Exit code: `0` = correct, `1` = incorrect or failed.
 | `--inputs` | (none) | Optional file defining `get_inputs()` (required) and `get_init_inputs()` (optional); overrides definitions in `--ref` |
 | `--timing-method` | `cuda_event` | `cuda_event`, `host_time` |
 | `--precision` | `float32` | `float32`, `float16`, `bfloat16` |
-| `--backend` | `cuda` | `cuda`, `triton`, `tilelang`, `cute`, `hip` |
+| `--backend` | `cuda` | `cuda`, `triton`, `tilelang`, `cute`, `hip` (see note below) |
 | `--num-correct-trials` | `5` | Number of correctness check iterations |
 | `--num-perf-trials` | `100` | Number of performance timing iterations |
 | `--verbose` | off | Print detailed debug info |
 | `--self-test` | off | Run source transformation self-test and exit |
+
+### Backend selection matters
+
+The default `--backend cuda` loads the solution via `exec(<source>, context)` —
+which **rejects `@triton.jit` functions** with `@jit functions should be defined
+in a Python file` (Triton requires source from a real `.py`). If your solution
+uses Triton / TileLang / CuTe, pass `--backend triton` (or the matching name).
+The Triton-family backends load via tempfile + `importlib` so `@jit` source
+inspection works.
+
+| Solution language | Required `--backend` |
+|-------------------|----------------------|
+| Raw CUDA via `torch.utils.cpp_extension.load[_inline]` | `cuda` (default) |
+| Triton (`@triton.jit`) | `triton` |
+| TileLang | `tilelang` |
+| CuTe | `cute` |
+| HIP | `hip` |
 
 ## Solution File Requirements
 
