@@ -4,24 +4,40 @@ Self-contained evaluation script for AKO4ALL. Inlines core logic from [KernelBen
 
 ## Setup
 
-When `bench/` is empty (default bench mode), use `bench/kernelbench/bench.py` as the benchmark. Determine the input format:
+When `bench/` is empty (default bench mode), use `bench/kernelbench/bench.py` as the benchmark.
 
-- **KernelBench-format input**: The input file already has `class Model(nn.Module)` with a `forward()` method, plus top-level `get_inputs()` and `get_init_inputs()` functions. Use the input file directly — no wrapping needed.
-- **Raw kernel input** (CUDA, Triton, CuTe-DSL, etc.): The agent must wrap the kernel into KernelBench format:
-  1. Create a new `.py` file in `input/` (e.g., `input/kernel_kb.py`) containing:
-     - `class Model(nn.Module)` with `forward()` calling the kernel (e.g., via `torch.utils.cpp_extension.load_inline` for CUDA)
-     - Top-level `get_inputs()` returning sample inputs
-     - Top-level `get_init_inputs()` returning constructor args (often `[]`)
-  2. This wrapped file becomes the reference.
+### Inputs to assemble
 
-If the user provides `input/reference.py`, use that as the reference (`--ref`). Otherwise, the input kernel file (original or wrapped) serves as the reference.
+Three pieces must be reachable at eval time:
 
-**Bench command** (for TASK.md step 5):
+| Piece | Source priority | Required |
+|-------|-----------------|----------|
+| `class Model(nn.Module)` with `forward()` | `--ref` file | Yes |
+| `get_inputs()` returning sample input tensors | `--inputs` file > `--ref` file | Yes |
+| `get_init_inputs()` returning constructor args | `--inputs` file > `--ref` file > defaults to `[]` | No |
+
+The agent's job during Setup is to assemble these three pieces from whatever the user provided — by writing files into `input/` (or pointing `--ref` / `--inputs` at existing paths) so the bench command has what it needs. How to assemble them is up to the agent.
+
+### Common assembly patterns
+
+These are typical paths, not rules. Use whichever shape fits the situation.
+
+- **KernelBench-format input** — A single file already contains all three pieces. Use it directly as `--ref`; omit `--inputs`.
+- **Raw kernel** (CUDA / Triton / CuTe-DSL / TileLang / ...) — Wrap the kernel into a `class Model` (e.g., `torch.utils.cpp_extension.load_inline` for CUDA) and define `get_inputs()`. Either keep both in one file used as `--ref`, or split: `class Model` in `--ref`, `get_inputs()` in a separate `input/inputs.py` passed via `--inputs`.
+- **Kernel + separate input data** — User provides a kernel plus data in some non-Python format (`.npz`, `.bin`, shape lists in `.txt`, etc.). Wrap the kernel into `class Model` in `--ref`, then write `input/inputs.py` whose `get_inputs()` loads the data file (`np.load`, `torch.load`, custom parser — agent's call) and returns tensors. Pass it via `--inputs`.
+- **Kernel referenced by external path** — User points at a kernel outside this repo (e.g., a path into a KernelBench dataset). `--ref` and `--inputs` accept arbitrary paths; no need to copy files into `input/`.
+
+### Pitfall: `get_inputs()` must produce fresh data per call
+
+The bench script calls `get_inputs()` once per correctness trial (5 by default) and again for timing. If `get_inputs()` returns a module-level cached tensor, every trial sees identical data — correctness checks pass trivially and timing reflects cache-warm performance. Make `get_inputs()` regenerate inputs each call (`torch.randn`, re-`np.load`, etc.).
+
+### Bench command
+
 ```
-python bench/kernelbench/bench.py --ref input/<ref>.py --solution solution/<kernel>.py --verbose
+python bench/kernelbench/bench.py --ref input/<ref>.py --solution solution/<kernel>.py [--inputs input/inputs.py] --verbose
 ```
 
-The solution file keeps `class Model` — the bench script transparently renames it to `class ModelNew` before evaluation.
+If the file passed to `--inputs` also defines `get_init_inputs()`, it overrides the ref's version too. The solution file keeps `class Model` — the bench script transparently renames it to `class ModelNew` before evaluation.
 
 ## Output Format
 
@@ -47,8 +63,9 @@ Exit code: `0` = correct, `1` = incorrect or failed.
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--ref` | (required) | Path to reference kernel |
+| `--ref` | (required) | Path to reference kernel (must define `class Model`) |
 | `--solution` | (required) | Path to optimized kernel |
+| `--inputs` | (none) | Optional file defining `get_inputs()` (required) and `get_init_inputs()` (optional); overrides definitions in `--ref` |
 | `--timing-method` | `cuda_event` | `cuda_event`, `host_time` |
 | `--precision` | `float32` | `float32`, `float16`, `bfloat16` |
 | `--backend` | `cuda` | `cuda`, `triton`, `tilelang`, `cute`, `hip` |
@@ -61,7 +78,7 @@ Exit code: `0` = correct, `1` = incorrect or failed.
 
 - The solution file must contain `class Model(nn.Module)` with a `forward()` method matching the reference's signature.
 - The bench script handles `Model` -> `ModelNew` renaming transparently — **do not** rename the class in the solution file.
-- Do not include `get_inputs()` or `get_init_inputs()` in the solution file — the reference provides them.
+- Do not include `get_inputs()` or `get_init_inputs()` in the solution file. The bench script strips the solution's module-level tail (variables and functions following the last class) as an anti-cheat boundary — any such definitions would be silently dropped, and the solution cannot influence which inputs it is tested against.
 
 ## Correctness Tolerances
 

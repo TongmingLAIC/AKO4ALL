@@ -42,6 +42,7 @@ SOFTWARE.
 
 import argparse
 import importlib
+import importlib.util
 import os
 import re
 import statistics
@@ -500,12 +501,17 @@ def eval_kernel_against_ref(
     precision: torch.dtype = torch.float32,
     check_for_excessive_speedup: bool = True,
     excessive_speedup_threshold: float = 10,
+    get_inputs_override: Optional[callable] = None,
+    get_init_inputs_override: Optional[callable] = None,
 ) -> KernelExecResult:
     """
     Evaluate a custom kernel against the reference model.
 
     Compiles and loads both models, checks correctness, and optionally
     measures performance (timing + speedup).
+
+    If `get_inputs_override` / `get_init_inputs_override` are provided, they
+    take precedence over any definitions found inside `original_model_src`.
     """
     assert torch.cuda.is_available(), "CUDA is not available, cannot run Eval"
 
@@ -542,9 +548,34 @@ def eval_kernel_against_ref(
         print(f"[Eval] Start Evaluation! on device: {device}")
         print("[Eval] Loading Original Model")
 
-    Model, get_init_inputs, get_inputs = load_original_model_and_inputs(
+    Model, ref_get_init_inputs, ref_get_inputs = load_original_model_and_inputs(
         original_model_src, context
     )
+
+    # Override chain: explicit override > definition inside reference file.
+    # get_inputs is required (no sensible default); get_init_inputs defaults to [].
+    get_inputs = (
+        get_inputs_override if get_inputs_override is not None else ref_get_inputs
+    )
+    get_init_inputs = (
+        get_init_inputs_override
+        if get_init_inputs_override is not None
+        else ref_get_init_inputs
+    )
+
+    if get_inputs is None:
+        msg = (
+            "get_inputs() not found. Define it in the reference file or pass "
+            "--inputs <file> with a top-level get_inputs() function."
+        )
+        print(f"[Eval] {msg}")
+        metadata["error"] = "missing_get_inputs"
+        metadata["error_message"] = msg
+        return KernelExecResult(compiled=False, metadata=metadata)
+
+    if get_init_inputs is None:
+        get_init_inputs = lambda: []
+
     set_seed(seed_num)
     init_inputs = get_init_inputs()
     init_inputs = [
@@ -782,27 +813,46 @@ def _find_tail_section(src: str) -> int:
     return len(src)
 
 
-def prepare_solution_source(ref_src: str, sol_src: str) -> str:
+def prepare_solution_source(sol_src: str) -> str:
     """
     Prepare solution source for eval:
     1. Rename class Model -> class ModelNew
-    2. Strip solution's tail section (module vars, get_inputs, etc.)
-    3. Append reference's tail section
+    2. Strip solution's tail section (module-level vars, get_inputs,
+       get_init_inputs, etc.).
+
+    The tail strip is the anti-cheat boundary: get_inputs / get_init_inputs
+    come from the reference file or the --inputs file, never from the solution.
+    Stripping prevents the solution (which is exec'd into the same context as
+    the reference) from silently overriding them.
     """
     modified = rename_model_to_modelnew(sol_src)
-
     sol_tail_start = _find_tail_section(modified)
-    modified = modified[:sol_tail_start].rstrip()
+    return modified[:sol_tail_start].rstrip() + "\n"
 
-    ref_tail_start = _find_tail_section(ref_src)
-    ref_tail = ref_src[ref_tail_start:]
 
-    if ref_tail.strip():
-        modified = modified + "\n\n" + ref_tail
-    else:
-        modified = modified + "\n"
+def load_inputs_module(path: str) -> tuple[Optional[callable], Optional[callable]]:
+    """
+    Load `get_inputs` (required) and `get_init_inputs` (optional) from an
+    external Python file. Used when the user supplies `--inputs <file>` to
+    decouple test-input definition from the reference kernel file.
 
-    return modified
+    Returns (get_inputs, get_init_inputs). The latter may be None.
+    """
+    spec = importlib.util.spec_from_file_location("ako_inputs_module", path)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"Cannot load inputs module from {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    get_inputs = getattr(module, "get_inputs", None)
+    get_init_inputs = getattr(module, "get_init_inputs", None)
+
+    if get_inputs is None:
+        raise ValueError(
+            f"Inputs file {path} must define a top-level get_inputs() function"
+        )
+
+    return get_inputs, get_init_inputs
 
 
 ###############################################################################
@@ -811,25 +861,7 @@ def prepare_solution_source(ref_src: str, sol_src: str) -> str:
 
 
 def _self_test():
-    """Verify source transformation logic."""
-    ref = '''import torch
-import torch.nn as nn
-
-class Model(nn.Module):
-    def __init__(self):
-        super(Model, self).__init__()
-
-    def forward(self, x):
-        return x * 2
-
-N = 2048
-
-def get_inputs():
-    return [torch.randn(N, N)]
-
-def get_init_inputs():
-    return []
-'''
+    """Verify source transformation and inputs-loading logic."""
     sol = '''import torch
 import torch.nn as nn
 
@@ -848,55 +880,24 @@ def get_inputs():
 def get_init_inputs():
     return [42]
 '''
-    result = prepare_solution_source(ref, sol)
+    result = prepare_solution_source(sol)
 
     # Must have ModelNew, not Model
     assert "class ModelNew(" in result, "ModelNew rename failed"
     assert "class Model(" not in result, "Original Model class still present"
     assert "super(ModelNew," in result, "super() rename failed"
 
-    # Must have exactly one N = ... (from ref)
-    n_count = len(re.findall(r"^N = ", result, re.MULTILINE))
-    assert n_count == 1, f"Expected 1 N assignment, got {n_count}"
-    assert "N = 2048" in result, "Should use ref's N = 2048"
-
-    # Must have exactly one get_inputs and one get_init_inputs (from ref)
-    gi_count = len(re.findall(r"^def get_inputs", result, re.MULTILINE))
-    assert gi_count == 1, f"Expected 1 get_inputs, got {gi_count}"
-    gii_count = len(re.findall(r"^def get_init_inputs", result, re.MULTILINE))
-    assert gii_count == 1, f"Expected 1 get_init_inputs, got {gii_count}"
-
-    # get_init_inputs should return [] (from ref, not [42] from sol)
-    assert "return []" in result, "Should use ref's get_init_inputs"
+    # Solution tail must be stripped — anti-cheat boundary
+    assert "N = 4096" not in result, "Solution's N must not leak"
+    assert "def get_inputs" not in result, "Solution's get_inputs must be stripped"
+    assert "def get_init_inputs" not in result, (
+        "Solution's get_init_inputs must be stripped"
+    )
+    assert "return [42]" not in result, "Solution's get_init_inputs body must be stripped"
 
     print("Self-test PASSED: source transformation is correct.")
 
     # --- Multi-class regression (issue #7) ---
-    ref_multi = '''import torch
-import torch.nn as nn
-
-class Helper(nn.Module):
-    def forward(self, x):
-        return x
-
-def helper_fn():
-    pass
-
-class Model(nn.Module):
-    def __init__(self):
-        super(Model, self).__init__()
-
-    def forward(self, x):
-        return x * 2
-
-N = 2048
-
-def get_inputs():
-    return [torch.randn(N, N)]
-
-def get_init_inputs():
-    return []
-'''
     sol_multi = '''import torch
 import torch.nn as nn
 
@@ -922,15 +923,17 @@ def get_inputs():
 def get_init_inputs():
     return [42]
 '''
-    result_multi = prepare_solution_source(ref_multi, sol_multi)
+    result_multi = prepare_solution_source(sol_multi)
     assert "class Helper(" in result_multi, "Helper class should be preserved"
     assert "class ModelNew(" in result_multi, "ModelNew rename failed (multi-class)"
     assert "def helper_fn" in result_multi, "helper_fn should be preserved"
-    assert "N = 2048" in result_multi, "Should use ref's N = 2048 (multi-class)"
-    n_count_m = len(re.findall(r"^N = ", result_multi, re.MULTILINE))
-    assert n_count_m == 1, f"Expected 1 N assignment (multi), got {n_count_m}"
     assert "N = 4096" not in result_multi, "Solution's N must not leak (multi-class)"
-    assert "return [42]" not in result_multi, "Solution's get_init_inputs must not leak"
+    assert "def get_inputs" not in result_multi, (
+        "Solution's get_inputs must be stripped (multi-class)"
+    )
+    assert "return [42]" not in result_multi, (
+        "Solution's get_init_inputs body must be stripped"
+    )
     print("Self-test PASSED: multi-class transformation is correct (issue #7).")
 
     # --- No-class edge case ---
@@ -938,6 +941,50 @@ def get_init_inputs():
     assert _find_tail_section(no_class_src) == len(no_class_src), \
         "No class: entire source should be kept (offset == len)"
     print("Self-test PASSED: no-class edge case.")
+
+    # --- load_inputs_module: both get_inputs and get_init_inputs ---
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write(
+            "def get_inputs():\n"
+            "    return [1, 2, 3]\n"
+            "\n"
+            "def get_init_inputs():\n"
+            "    return ['a']\n"
+        )
+        tmp_path = f.name
+    try:
+        gi, gii = load_inputs_module(tmp_path)
+        assert gi() == [1, 2, 3], "load_inputs_module: get_inputs return mismatch"
+        assert gii() == ["a"], "load_inputs_module: get_init_inputs return mismatch"
+        print("Self-test PASSED: load_inputs_module (both functions).")
+    finally:
+        os.remove(tmp_path)
+
+    # --- load_inputs_module: get_inputs only ---
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write("def get_inputs():\n    return [42]\n")
+        tmp_path = f.name
+    try:
+        gi, gii = load_inputs_module(tmp_path)
+        assert gi() == [42]
+        assert gii is None, "get_init_inputs should be None when absent"
+        print("Self-test PASSED: load_inputs_module (get_inputs only).")
+    finally:
+        os.remove(tmp_path)
+
+    # --- load_inputs_module: missing get_inputs must raise ---
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        f.write("def get_init_inputs():\n    return []\n")
+        tmp_path = f.name
+    try:
+        try:
+            load_inputs_module(tmp_path)
+            assert False, "Should have raised for missing get_inputs"
+        except ValueError as e:
+            assert "get_inputs" in str(e)
+        print("Self-test PASSED: load_inputs_module rejects missing get_inputs.")
+    finally:
+        os.remove(tmp_path)
 
 
 ###############################################################################
@@ -956,6 +1003,13 @@ def main():
         "--solution",
         required=True,
         help="Path to optimized kernel (with class Model - renamed automatically)",
+    )
+    parser.add_argument(
+        "--inputs",
+        default=None,
+        help="Optional path to a separate Python file defining get_inputs() "
+             "(required) and get_init_inputs() (optional). When provided, "
+             "these override any definitions found in --ref.",
     )
     parser.add_argument(
         "--timing-method",
@@ -1012,7 +1066,16 @@ def main():
     ref_src = read_file(args.ref)
     sol_src = read_file(args.solution)
 
-    modified_sol_src = prepare_solution_source(ref_src, sol_src)
+    modified_sol_src = prepare_solution_source(sol_src)
+
+    get_inputs_override = None
+    get_init_inputs_override = None
+    if args.inputs:
+        get_inputs_override, get_init_inputs_override = load_inputs_module(args.inputs)
+        if args.verbose:
+            print(f"[Inputs] Loaded get_inputs from {args.inputs}")
+            if get_init_inputs_override is not None:
+                print(f"[Inputs] Loaded get_init_inputs from {args.inputs}")
 
     if args.verbose:
         print("=" * 60)
@@ -1036,6 +1099,8 @@ def main():
         verbose=args.verbose,
         backend=args.backend,
         precision=precision,
+        get_inputs_override=get_inputs_override,
+        get_init_inputs_override=get_init_inputs_override,
     )
 
     if result is None:
