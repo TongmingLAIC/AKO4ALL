@@ -1,15 +1,7 @@
 # Iteration Log
 
-## Summary
-
-<!-- Append one row per iteration. Status: improved / no-change / regression / failed -->
-
-| Iter | Title | Speedup(mean) | Runtime(mean) | Status |
-|------|-------|---------|--------------|--------|
-
-## Iterations
-
-<!-- Template — copy for each new iteration:
+<!--
+Per-iteration template (copy when adding a new iter entry under "## Iterations"):
 
 ### Iter N — Short title
 
@@ -22,4 +14,14 @@
   - Speedup: ___x (mean), ___ ~ ___x (min ~ max)
 - **Analysis:** Why it worked or failed
 - **Next:** What to try next
+
+Append one row per iter to the Summary table below.
+Status values: improved / no-change / regression / failed.
 -->
+
+## Summary
+
+| Iter | Title | Speedup(mean) | Runtime(mean) | Status |
+|------|-------|---------|--------------|--------|
+
+## Iterations
