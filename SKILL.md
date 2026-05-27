@@ -43,13 +43,14 @@ If the user's prompt + filesystem give you confidence about every required item,
 
 ### Always present the resolved plan before running anything
 
-Whether you asked the user or not, list back what you decided — so the user can correct you even when you didn't think you needed to ask:
+Whether you asked the user or not, list back what you decided — so the user can correct you even when you didn't think you needed to ask. **Render the plan as a fenced code block** so it stands out from surrounding prose (terminals render code blocks with a distinct background); don't flatten it to plain indented text.
 
 ```
 Workspace: <path>
 Kernel: <path>
 Reference: <path> | none (will use original kernel)
 Input data: <path> | inline in ref | none
+Knowledge: <path> | none
 Bench mode: default (KernelBench) | custom (<path>)
 Scaffold to copy: <list of missing files> | none (already present)
 ```
