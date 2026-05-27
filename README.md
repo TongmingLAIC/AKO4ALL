@@ -44,15 +44,9 @@ ln -s /path/to/AKO4ALL ~/.claude/skills/ako4all
 
 ### Mode 1 — Interactive (default)
 
-Open Claude Code in a directory containing your kernel and any optional inputs. **Names are conventions, not requirements** — if your files use different names, just point Claude at them in the prompt; the skill handles it.
+Open Claude Code in a directory containing your kernel, then ask it to optimize the kernel. Files in the working directory are inspected automatically; you can also point at external paths. Optional constraints — iteration cap, language preference, dependency policy, etc. — included in the prompt will be merged into `HINTS.md`.
 
-Then ask:
-
-- "Optimize the kernel in `<path>`"
-- "Speed up this CUDA kernel — focus on memory bandwidth"
-- "Run AKO on this kernel"
-
-The skill inspects the directory, presents a resolved plan, asks if anything is genuinely ambiguous, and starts iterating. You can interrupt at any point to redirect.
+The skill presents a resolved plan, asks if anything is genuinely ambiguous, and starts iterating. You can interrupt at any point to redirect.
 
 <details>
 <summary>Optional: pre-organize your workspace</summary>
@@ -61,7 +55,7 @@ If you want the conventional layout the skill recognizes:
 
 ```
 <workspace>/
-├── source/                      # User-provided source: kernel + optional reference + inputs helper
+├── source/                      # Kernel + optional reference and inputs
 │   ├── kernel.py
 │   ├── reference.py             # Optional
 │   └── inputs.py / data.npz ... # Optional — input data, any format
@@ -77,26 +71,21 @@ These are conventions, not requirements. If your files are organized differently
 
 ### Mode 2 — Batch via subagents (advanced)
 
-For optimizing several related kernels in parallel, the main agent can spawn one subagent per kernel via the `Task` tool.
+For optimizing several related kernels in parallel, in Claude Code the main agent can spawn one subagent per kernel via the `Task` tool.
 
-> ⚠️ **Subagents cannot ask back.** They have no `AskUserQuestion` capability, so include all uncertainty-resolving info in the spawning prompt up-front (kernel path, reference / inputs locations, constraints, branch name pattern). If a subagent hits genuine ambiguity it falls back to `SKILL.md` defaults — typically fine but may need follow-up.
+> ⚠️ **Subagents can't ask back.** In Claude Code, subagents lack `AskUserQuestion`. The main agent composes each subagent's prompt from your instructions plus what's in each kernel's directory; any decision you don't pin down there will fall to `SKILL.md` defaults. So include the things you care about (per-kernel paths, optional reference / inputs locations, language or iteration-cap constraints, custom branch names) — and let the rest default.
 
-See the [FAQ](#faq) for a concrete spawning-prompt example.
+See the [FAQ](#faq) for an example.
 
 ## Requirements
 
-- A Coding Agent (e.g., [Claude Code](https://docs.anthropic.com/en/docs/claude-code))
-- NVIDIA Nsight Compute (`ncu`) — version must match your CUDA toolkit / PyTorch
-  CUDA build; mismatched versions error with `cudaErrorCallRequiresNewerDriver`.
-  If `ncu` is unrunnable in your environment, the loop still proceeds (the agent
-  skips profiling and reasons from runtime stats).
-- Benchmark environment:
-  - Built-in evaluator: Python **>= 3.10** (uses `match` statements; 3.9 errors
-    with `SyntaxError` at `bench.py` import time), PyTorch with CUDA, NVIDIA GPU
-  - Custom bench script: whatever your script requires
+- A coding agent (e.g., [Claude Code](https://docs.anthropic.com/en/docs/claude-code))
+- NVIDIA GPU with CUDA-enabled PyTorch (only for the built-in evaluator; a remote-execution bench script may not need either locally)
+- Python **>= 3.10** for the built-in evaluator (or whatever your custom bench script requires)
+- NVIDIA Nsight Compute (`ncu`) — recommended; its version must match your CUDA / PyTorch CUDA build. If unavailable, the loop still proceeds (no profiling — the agent reasons from runtime stats instead).
 - Git
 
-> **Note:** The agent may install packages (`pip install`, `apt install`, etc.) to resolve missing dependencies. Running in a container or virtual environment is recommended. To restrict this behavior, use [Hints](#hints) (e.g., `Do not install any packages`) or [Permissions](#permissions).
+> **Note:** During the loop the agent may run `pip install` / `apt install` etc. to fill in missing dependencies. A container or virtual environment is recommended for isolation; to forbid installs, see [Hints](#hints) or [Permissions](#permissions).
 
 ## How It Works
 
@@ -201,22 +190,22 @@ Model capability strongly influences optimization quality. We recommend [Claude 
 By default there is no cap — the agent decides when to stop on its own. To enforce a limit, add a directive to `HINTS.md`, or include it in your prompt (e.g., `Optimize for up to 30 iterations. Stop early only if all viable approaches are exhausted.`). For guidance on structuring open-ended agent tasks, see [autoresearch](https://github.com/karpathy/autoresearch)'s [`program.md`](https://github.com/karpathy/autoresearch/blob/master/program.md).
 
 **How do I spawn subagents to optimize multiple kernels in parallel?**
-Tell the main agent up-front, with every uncertainty inlined:
+Tell the main agent up-front, with the per-kernel info it needs:
 
 > Use AKO4ALL to optimize three kernels in parallel:
 > - `/work/relu/kernel.py` — no separate reference, inline inputs
 > - `/work/softmax/kernel.py` — reference at `/work/softmax/torch_ref.py`
 > - `/work/matmul/kernel.py` — constraint: stay in Triton
 >
-> Iter cap 10 each. Branch name `opt/<kernel>`.
+> Iter cap 10 each.
 
-Subagents cannot ask back, so any detail not in this prompt is decided by the subagent on its own.
+In Claude Code, subagents can't ask back, so anything you don't specify in the prompt (or that isn't in the kernel's directory) falls to `SKILL.md` defaults.
 
 **What if the benchmark fails after an optimization?**
 The agent reads the failure, attempts fixes, and reverts if needed.
 
 **My bench script uses a remote service (e.g., Modal). Does that work?**
-Yes. As long as your bench script runs from the command line and prints results to stdout.
+Yes. As long as your bench script runs from the command line and prints results to stdout. The local machine doesn't need a GPU / CUDA / PyTorch in that case — just whatever your wrapper script imports.
 
 **Can I intervene during optimization?**
 Yes. You can interrupt the agent at any time to give guidance, discuss strategy, or manually edit files in `solution/`. Then tell the agent to continue.
