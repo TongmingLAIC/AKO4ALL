@@ -9,13 +9,20 @@
 
 <p align="center"><b>If you find our work useful, please consider giving us a star 🌟</b></p>
 
-Agentic Kernel Optimization for All — automated GPU kernel optimization powered by coding agents. Provide any kernel — the agent iteratively rewrites it for maximum performance. Ships as a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill; other coding agents can drive the loop by following `SKILL.md` as a protocol document.
+## News
 
-**AKO4ALL is the lightweight drop-in-a-kernel-get-it-optimized path** — single-session, minimal infra; your benchmark (BYO script or built-in KernelBench) is a shell command the agent invokes directly. For **campaign-grade multi-round kernel optimization** — cross-run memory, an archive of variants feeding the next round, and master/sub agent separation — see the sibling project [AKO4X](https://github.com/TongmingLAIC/AKO4FIB) (default benchmark: flashinfer-bench, swappable via adapter; coming soon — open-sourced after the [MLSys 2026 competition](https://mlsys26.flashinfer.ai/)).
+- 📢 **[2026.03.28]** [AKO4X](https://github.com/TongmingLAIC/AKO4FIB) coming soon — will be open-sourced after the [MLSys 2026 competition](https://mlsys26.flashinfer.ai/).
+- 🚀 **[2026.03.24]** AKO4ALL is released.
+
+## What is AKO4ALL?
+
+**AKO4ALL is automated GPU kernel optimization powered by coding agents.** Provide any kernel — the agent iteratively rewrites it for maximum performance. Ships as a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill; other coding agents can drive the loop by following `SKILL.md` as a protocol document.
 
 <p align="center">
   <img src="assets/hero.png" alt="A cartoon robot agent at a single workshop bench iterates on a glowing GPU kernel cube — with iteration logbook, profiler, timer, and commit stamp at hand, and a speedup chart on the chalkboard — illustrating AKO4ALL's single-session, drop-in kernel optimization loop." width="780" />
 </p>
+
+**AKO4ALL vs [AKO4X](https://github.com/TongmingLAIC/AKO4FIB)** — two sibling projects with different framings. AKO4ALL is the lightweight drop-in-a-kernel-get-it-optimized path: single-session, minimal infra; your benchmark (BYO script or built-in [KernelBench](https://github.com/ScalingIntelligence/KernelBench)) is a shell command the agent invokes directly. AKO4X is the **campaign-grade** tool: multi-round closed-loop with cross-run memory, an archive of variants feeding the next round, and master/sub agent separation (default benchmark: flashinfer-bench, swappable via adapter; coming soon — open-sourced after the [MLSys 2026 competition](https://mlsys26.flashinfer.ai/)).
 
 ## What You Provide
 
