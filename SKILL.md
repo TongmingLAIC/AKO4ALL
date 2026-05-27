@@ -45,21 +45,17 @@ If the user's prompt + filesystem give you confidence about every required item,
 
 Whether you asked the user or not, list back what you decided — so the user can correct you even when you didn't think you needed to ask.
 
-**Wrap the plan in triple-backtick fences in your reply.** Your reply must literally contain an opening ` ``` ` line and a closing ` ``` ` line with the plan body between them — terminals render that as a code block with a distinct background. Plain indented text (a couple of leading spaces per line) is visually indistinguishable from prose, so do NOT use it.
+Use the format below. Bold field labels + inline-code path values + the leading emoji marker make the plan visually scannable in any terminal theme (don't flatten to a wall of prose):
 
-The literal markdown you emit should look like the block below (the outer 4-backtick fence here is just to display the inner 3-backtick fence to you; you write 3 backticks, not 4):
+**📋 Resolved Plan**
 
-````
-```
-Workspace: <path>
-Kernel: <path>
-Reference: <path> | none (will use original kernel)
-Input data: <path> | inline in ref | none
-Knowledge: <path> | none
-Bench mode: default (KernelBench) | custom (<path>)
-Scaffold to copy: <list of missing files> | none (already present)
-```
-````
+- **Workspace** — `<path>`
+- **Kernel** — `<path>`
+- **Reference** — `<path>` *(or none — will use original kernel)*
+- **Input data** — `<path>` *(or inline in ref, or none)*
+- **Knowledge** — `<path>` *(or none)*
+- **Bench mode** — default (KernelBench) *(or custom: `<path>`)*
+- **Scaffold to copy** — `<list of missing files>` *(or none — already present)*
 
 If anything still feels uncertain at this point, **stop and ask**. Otherwise proceed to Workflow.
 
