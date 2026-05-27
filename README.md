@@ -9,20 +9,15 @@
 
 <p align="center"><b>If you find our work useful, please consider giving us a star 🌟</b></p>
 
-Agentic Kernel Optimization for All — automated GPU kernel optimization powered by coding agents. Provide any kernel — the agent iteratively rewrites it for maximum performance. Ships as a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill; other coding agents can drive the loop by following `SKILL.md` as a protocol document.
-
-> Looking for standardized optimization against flashinfer-bench operators? Check out [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB) (coming soon).
-
 <p align="center">
   <img src="assets/sol_001_optimization.png" alt="AKO4ALL optimization trajectory on SOL-ExecBench L1-001" width="100%">
 </p>
 
 *Optimization trajectory on [SOL-ExecBench](https://github.com/NVIDIA/SOL-ExecBench) L1-001 (Attention Softmax+Dropout+Value Matmul Backward). 41 iterations, 8.93× average speedup over the PyTorch reference. Developed on A100-SXM4-80GB, ~2 hours total.*
 
-## News
+Agentic Kernel Optimization for All — automated GPU kernel optimization powered by coding agents. Provide any kernel — the agent iteratively rewrites it for maximum performance. Ships as a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill; other coding agents can drive the loop by following `SKILL.md` as a protocol document.
 
-- 📢 **[2026.03.28]** [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB) coming soon — will be open-sourced after the [MLSys 2026 competition](https://mlsys26.flashinfer.ai/).
-- 🚀 **[2026.03.24]** AKO4ALL is released. Check out the [project page](https://tongminglaic.github.io/AKO).
+**AKO4ALL is the lightweight drop-in-a-kernel-get-it-optimized path** — single-session, minimal infra; your benchmark (BYO script or built-in KernelBench) is a shell command the agent invokes directly. For **batch evaluation against the standardized flashinfer-bench operator suite** (comparable speedups across many kernels), see the sibling project [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB) (coming soon — open-sourced after the [MLSys 2026 competition](https://mlsys26.flashinfer.ai/)).
 
 ## What You Provide
 
@@ -36,6 +31,63 @@ Only a kernel is required — everything else is optional.
 - **Hints** (optional) — Directives for the agent: optimization constraints, focus areas, and behavior controls (e.g., whether to allow web search).
 
 > **Notes:** At least one set of input shapes must be determinable from what you provide. If none can be found, the agent will ask.
+
+## Install
+
+Clone the repo directly into Claude Code's skills directory:
+
+```bash
+git clone https://github.com/TongmingLAIC/AKO4ALL.git ~/.claude/skills/ako4all
+```
+
+Or, if you already have it cloned somewhere else, symlink it:
+
+```bash
+ln -s /path/to/AKO4ALL ~/.claude/skills/ako4all
+```
+
+## How to Use
+
+### Mode 1 — Interactive (default)
+
+Open Claude Code in a directory containing your kernel and any optional inputs. **Names are conventions, not requirements** — if your files use different names, just point Claude at them in the prompt; the skill handles it.
+
+Then ask:
+
+- "Optimize the kernel in `<path>`"
+- "Speed up this CUDA kernel — focus on memory bandwidth"
+- "Run AKO on this kernel"
+
+The skill inspects the directory, presents a resolved plan, asks if anything is genuinely ambiguous, and starts iterating. You can interrupt at any point to redirect.
+
+<details>
+<summary>Optional: pre-organize your workspace</summary>
+
+If you want the conventional layout the skill recognizes:
+
+```
+<workspace>/
+├── source/                      # User-provided source: kernel + optional reference + inputs helper
+│   ├── kernel.py
+│   ├── reference.py             # Optional
+│   └── inputs.py / data.npz ... # Optional — input data, any format
+├── bench/                       # Your own benchmark script (optional)
+│   └── ...
+├── knowledge/                   # Reference materials (optional)
+└── HINTS.md                     # Agent directives (optional)
+```
+
+These are conventions, not requirements. If your files are organized differently, just point Claude at them.
+
+</details>
+
+### Mode 2 — Batch via subagents (advanced)
+
+For optimizing several related kernels in parallel, the main agent can spawn one subagent per kernel via the `Task` tool.
+
+> ⚠️ **Subagents cannot ask back.** They have no `AskUserQuestion` capability, so include all uncertainty-resolving info in the spawning prompt up-front (kernel path, reference / inputs locations, constraints, branch name pattern). If a subagent hits genuine ambiguity it falls back to `SKILL.md` defaults — typically fine but may need follow-up.
+
+See the [FAQ](#faq) for a concrete spawning-prompt example.
 
 ## Requirements
 
@@ -52,54 +104,9 @@ Only a kernel is required — everything else is optional.
 
 > **Note:** The agent may install packages (`pip install`, `apt install`, etc.) to resolve missing dependencies. Running in a container or virtual environment is recommended. To restrict this behavior, use [Hints](#hints) (e.g., `Do not install any packages`) or [Permissions](#permissions).
 
+## How It Works
 
-## Quick Start
-
-1. **Install the skill** — clone the repo directly into Claude Code's skills directory:
-
-```bash
-git clone https://github.com/TongmingLAIC/AKO4ALL.git ~/.claude/skills/ako4all
-```
-
-Or, if you already have it cloned somewhere else, symlink it (replace the path with where your clone lives):
-
-```bash
-ln -s /path/to/AKO4ALL ~/.claude/skills/ako4all
-```
-
-2. **Open Claude Code in any working directory** (from an environment with PyTorch + CUDA + `ncu` installed).
-
-3. **Tell Claude what to optimize.** Any of these phrasings will trigger the skill:
-   - "Optimize the kernel in `<path>`"
-   - "Speed up this CUDA / Triton kernel ..."
-   - "Run AKO on the kernel at `<path>`"
-
-The skill inspects your workspace, asks if anything is unclear, presents its resolved plan, and starts the loop.
-
-### Optional workspace layout
-
-If you want to organize your inputs ahead of time, the conventional layout the skill recognizes is:
-
-```
-<workspace>/
-├── source/                      # User-provided source: kernel + optional reference + inputs helper
-│   ├── kernel.py
-│   ├── reference.py             # Optional
-│   └── inputs.py / data.npz ... # Optional — input data, any format
-├── bench/                       # Your own benchmark script (optional)
-│   └── ...
-├── knowledge/                   # Reference materials (optional)
-└── HINTS.md                     # Agent directives (optional)
-```
-
-These names are **conventions, not requirements** — if your files are organized differently, just point Claude at them in the prompt. The skill respects your layout.
-
-## What Happens
-
-1. **Setup** — The agent reads your files, **creates an optimization branch**, copies the kernel to `solution/`, generates `bench.sh`, and verifies correctness.
-2. **Profile** — Runs `ncu` on the baseline kernel to identify bottlenecks before optimizing.
-3. **Iterate** — Each iteration: modify kernel → benchmark → log results to `ITERATIONS.md` → git commit. The agent uses profiling data, web search, and prior results to guide each attempt.
-4. **Track** — Every iteration is saved to `trajectory/` with the kernel source and benchmark output.
+The agent creates an `opt/<kernel>` branch, copies your kernel to `solution/`, generates a bench script, and runs a profile → modify → benchmark → log → commit loop. Profiling uses `ncu`; iteration history lives in `ITERATIONS.md`. See [`SKILL.md`](SKILL.md) for the full protocol.
 
 ## Hints
 
@@ -142,23 +149,26 @@ For more granular control, create `.claude/settings.local.json`:
 
 For other agents, consult their documentation on permission / auto-approve settings.
 
-## Tips
+## Repo Layout
 
-- **Agent laziness** — Agents may default to conservative strategies: staying in PyTorch, only tuning configurations, or skipping profiling. If progress stalls, intervene with specific guidance.
-- **Model matters** — Model capability strongly influences optimization quality. We recommend [Claude Opus 4.6](https://docs.anthropic.com/en/docs/about-claude/models).
-- **Iteration limits** — By default, there is no iteration cap — the agent decides when to stop on its own. To enforce a limit, add a directive to `HINTS.md`, or your prompt (e.g., `Optimize for up to 30 iterations. Stop early only if all viable approaches are exhausted.`). For guidance on structuring open-ended agent tasks, see [autoresearch](https://github.com/karpathy/autoresearch)'s [`program.md`](https://github.com/karpathy/autoresearch/blob/master/program.md).
+```
+AKO4ALL/
+├── SKILL.md              # Skill protocol — entry point the agent loads
+├── HINTS.md              # Default behavior directives (copied to workspace)
+├── ITERATIONS.md         # Iteration log template (copied to workspace)
+├── bench-wrapper.sh      # Template for scripts/bench.sh (copied to workspace)
+└── bench/kernelbench/    # Built-in KernelBench evaluator (copied to workspace)
+    ├── bench.py
+    └── GUIDE.md
+```
 
-## Anti-Cheat
-
-The skill instructs the agent to pursue genuine latency reduction and avoid reward hacking (stream injection, timing manipulation, returning uninitialized results, etc.). The built-in KernelBench evaluator also provides runtime defenses: excessive speedup flagging (>10× triggers a warning) and an input boundary — the solution's module-level tail is stripped before evaluation, so `get_inputs` / `get_init_inputs` always come from the reference or the `--inputs` file and the solution cannot influence the workload it is tested against. When inputs are loaded from external data files, their on-disk integrity depends on the filesystem; the agent is instructed not to modify them from within `solution/`.
-
-For stricter enforcement, add directives to `HINTS.md` or provide a custom bench script in `bench/` with built-in static analysis. KernelBench's [`kernel_static_checker.py`](https://github.com/ScalingIntelligence/KernelBench) is a good starting point.
+`SKILL.md` is what Claude Code loads when the skill triggers. The other listed files are scaffold the skill copies into the user's workspace when bootstrapping the loop. Other repo-root files (`README.md`, `LICENSE`, `assets/`) are project metadata, not installed into the workspace.
 
 ## Example: SOL-ExecBench
 
 [SOL-ExecBench](https://github.com/NVIDIA/SOL-ExecBench) contains 235 real-world DL kernel problems from NVIDIA. This example shows how to optimize any of them with AKO4ALL — no file copying needed.
 
-1. Install the skill (see [Quick Start](#quick-start)). Clone SOL-ExecBench separately, set up its environment, and install `ncu` if needed.
+1. Install the skill (see [Install](#install)). Clone SOL-ExecBench separately, set up its environment, and install `ncu` if needed.
 
 2. Activate the SOL-ExecBench environment, open Claude Code in any working directory:
 
@@ -178,7 +188,35 @@ Benchmark with SOL-ExecBench. All dependencies for SOL-ExecBench are already ins
 
 The skill triggers, inspects the problem definition, sets up the benchmark, and starts iterating.
 
+## Anti-Cheat
+
+The skill instructs the agent to pursue genuine latency reduction (no stream injection, timing manipulation, or returning uninitialized results), and the built-in KernelBench evaluator flags >10× speedups and strips the solution's module-level tail before eval so it cannot influence its own workload. For stricter enforcement, add directives to `HINTS.md` or provide a custom bench script with static analysis (e.g., KernelBench's [`kernel_static_checker.py`](https://github.com/ScalingIntelligence/KernelBench)). See [`SKILL.md`](SKILL.md) "Gotchas" for the full agent-side rules.
+
 ## FAQ
+
+**Can I use AKO4ALL for a whole benchmark suite?**
+Not designed for it — single-session, drop-in is the design center. For batch evaluation across many operators with comparable speedups, see [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB).
+
+**My agent isn't trying hard enough — keeps tuning configs instead of rewriting.**
+Agent laziness is a known failure mode (staying in PyTorch, only tuning configurations, skipping profiling). Intervene with specific guidance, or add directives to `HINTS.md` ahead of time. The point of the loop is to *rewrite* the kernel — switch languages (Triton → CUDA, etc.) when it helps.
+
+**Which model should I use?**
+Model capability strongly influences optimization quality. We recommend [Claude Opus 4.6](https://docs.anthropic.com/en/docs/about-claude/models).
+
+**How do I cap iterations?**
+By default there is no cap — the agent decides when to stop on its own. To enforce a limit, add a directive to `HINTS.md`, or include it in your prompt (e.g., `Optimize for up to 30 iterations. Stop early only if all viable approaches are exhausted.`). For guidance on structuring open-ended agent tasks, see [autoresearch](https://github.com/karpathy/autoresearch)'s [`program.md`](https://github.com/karpathy/autoresearch/blob/master/program.md).
+
+**How do I spawn subagents to optimize multiple kernels in parallel?**
+Tell the main agent up-front, with every uncertainty inlined:
+
+> Use AKO4ALL to optimize three kernels in parallel:
+> - `/work/relu/kernel.py` — no separate reference, inline inputs
+> - `/work/softmax/kernel.py` — reference at `/work/softmax/torch_ref.py`
+> - `/work/matmul/kernel.py` — constraint: stay in Triton
+>
+> Iter cap 10 each. Branch name `opt/<kernel>`.
+
+Subagents cannot ask back, so any detail not in this prompt is decided by the subagent on its own.
 
 **What if the benchmark fails after an optimization?**
 The agent reads the failure, attempts fixes, and reverts if needed.
