@@ -32,7 +32,7 @@ Only a kernel is required — everything else is optional.
 - **Reference implementation** (optional) — Used as the correctness golden. If absent, the original kernel is used.
 - **Inputs** (optional) — Sample input data, in any form: hardcoded inside the kernel/reference, a separate Python file defining `get_inputs()`, or raw data files (`.npz`, `.bin`, shape lists, etc.) that the agent wires up itself. The agent assembles whatever is provided into something the bench script can call.
 - **Benchmark script** (optional) — Your own benchmark script. A `GUIDE.md` can be included to describe its usage. If no benchmark script is provided, the built-in [KernelBench](https://github.com/ScalingIntelligence/KernelBench) evaluator is used automatically (no setup needed beyond PyTorch).
-- **Context** (optional) — Reference materials for the agent: algorithm descriptions, papers, design docs, or any background knowledge that helps inform the optimization.
+- **Knowledge** (optional) — Reference materials for the agent: algorithm descriptions, papers, design docs, or any background knowledge that helps inform the optimization.
 - **Hints** (optional) — Directives for the agent: optimization constraints, focus areas, and behavior controls (e.g., whether to allow web search).
 
 > **Notes:** At least one set of input shapes must be determinable from what you provide. If none can be found, the agent will ask.
@@ -88,7 +88,7 @@ If you want to organize your inputs ahead of time, the conventional layout the s
 │   └── inputs.py / data.npz ... # Optional — input data, any format
 ├── bench/                       # Your own benchmark script (optional)
 │   └── ...
-├── context/                     # Reference materials (optional)
+├── knowledge/                   # Reference materials (optional)
 └── HINTS.md                     # Agent directives (optional)
 ```
 

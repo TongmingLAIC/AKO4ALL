@@ -31,11 +31,11 @@ Browse the workspace (don't run a fixed checklist — look around) and read the 
 - **Kernel** (required) — the code to optimize
 - **Reference** (optional) — correctness golden
 - **Input data** (optional) — data files the kernel consumes (`.npz`, `.bin`, shape lists, custom formats, etc.)
-- **Context** (optional) — reference materials the user wants you to consult: algorithm notes, papers, design docs, prior PRs. Typically under `context/` but anywhere the user points at.
+- **Knowledge** (optional) — reference materials the user wants you to consult: algorithm notes, papers, design docs, prior PRs. Typically under `knowledge/` but anywhere the user points at.
 - **Bench mode** — user-provided bench script vs. default `bench/kernelbench/` evaluator
 - **Scaffold presence** — whether `bench-wrapper.sh`, `HINTS.md`, `ITERATIONS.md`, `bench/kernelbench/` are already at workspace root
 
-Whether the workspace follows AKO4ALL's `input/` / `context/` / `bench/` naming or some entirely different layout is **not** the signal. What matters is whether you can identify each item above with confidence.
+Whether the workspace follows AKO4ALL's `input/` / `knowledge/` / `bench/` naming or some entirely different layout is **not** the signal. What matters is whether you can identify each item above with confidence.
 
 ### Ask only when genuinely uncertain
 
