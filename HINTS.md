@@ -1,13 +1,14 @@
 # Hints
 
-- Before Iter 1, run `ncu` on the baseline kernel to guide the first direction.
-  If `ncu` is unavailable (driver mismatch, missing toolkit), note that in
-  `ITERATIONS.md` and proceed with analytical reasoning + runtime stats (min vs
-  mean) — don't skip iter-1 setup just because the profiler isn't runnable.
-- If 3 consecutive iterations show no improvement, run `ncu` to re-profile, use WebSearch for new ideas, and review `ITERATIONS.md` for patterns. Plan before continuing.
+<!-- User-supplied behavior directives. The skill reads this at session start
+     and respects any constraint named here. Examples:
+     - Optimization constraints or focus areas (e.g., "Prefer Triton over raw CUDA")
+     - Strategies to try or avoid     (e.g., "Avoid shared memory")
+     - Agent behavior controls         (e.g., "Stop after 5 iterations")
+     - Dependency policies             (e.g., "Do not install new packages")
+     - Environment constraints         (e.g., "ncu is unavailable on this host",
+                                             "8GB device memory limit")
 
-<!-- Add directives below, for example:
-- Optimization constraints or focus areas
-- Strategies to try or avoid
-- Agent behavior controls
-- Dependency policies (e.g., "Do not install any packages") -->
+     The skill's own protocol (iteration steps, stall handling, ncu fallback,
+     stopping rules) lives in SKILL.md — do not duplicate it here.
+-->

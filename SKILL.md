@@ -90,7 +90,7 @@ added, replaced, or silently dropped their directives. Always name the **source*
 1. **Analyze inputs.** Building on the inventory above, confirm `class Model` and `get_inputs()` can be assembled for default bench mode; if not, **stop and ask the user**. See `bench/kernelbench/GUIDE.md` for the input assembly contract (KernelBench-format input / raw kernel / kernel + separate data file / external path patterns).
 2. **Create branch.** `git checkout -b opt/<kernel-name>`. If the workspace isn't a git repo, init one first.
 3. **Initialize solution.** Create `solution/` and `scripts/`. Copy the kernel implementation files into `solution/` (only the kernel itself — reference / inputs helper files stay at their resolved locations).
-4. **Generate bench.sh.** Build the bench command with adjusted paths, pipe through `2>&1 | tee _bench_output.txt`. Replace `{{BENCH_COMMAND}}` in `bench-wrapper.sh` to produce `scripts/bench.sh`. For default bench mode the command is `python bench/kernelbench/bench.py --ref <ref> --solution solution/<kernel> [--inputs <inputs-file>] --verbose` — include `--inputs` only when inputs are defined outside the ref file.
+4. **Generate bench.sh.** Build the bench command with adjusted paths, pipe through `2>&1 | tee _bench_output.txt`. Replace `{{BENCH_COMMAND}}` in `bench-wrapper.sh` to produce `scripts/bench.sh`. For default bench mode the command is `python bench/kernelbench/bench.py --ref <ref> --solution solution/<kernel> [--inputs <inputs-file>] --verbose` — include `--inputs` only when inputs are defined outside the ref file. **Do not hardcode `--backend`** in the rendered command; bench.py auto-detects backend from solution source. Add `--backend` only to override the sniff (explicit HIP labelling or mixed-backend solutions).
 5. **Verify baseline.** Run `bash scripts/bench.sh`. Expect `CORRECT=True`. If not, diagnose and fix before iterating. Commit: `git add -A && git commit -m "[baseline] Initialize solution and benchmark"`. Then run `ncu` once on the baseline to inform iter-1 direction.
 
 ## Iteration protocol
@@ -103,7 +103,46 @@ A failed or partial bench is still an iteration — complete steps 2 and 3 anywa
 2. Append a structured entry to `ITERATIONS.md` (template inside that file).
 3. `git commit -m "[iter N] <short description of optimization direction>"`.
 
-Use `ncu` to profile and identify bottlenecks — do not optimize blindly. Read `HINTS.md` for stall rules (default: re-profile + WebSearch after 3 stagnant iterations).
+Profile to identify bottlenecks — see "ncu profiling" below for the ncu workflow and analytical fallback. Do not optimize blindly.
+
+## Stall handling
+
+When 3 consecutive iterations show no improvement (≥3% over current best), pause the loop and re-assess before iter N+1. Re-assessment combines:
+
+- **Re-profile** with `ncu` if available, or re-read runtime stats from `ITERATIONS.md` (min vs mean, distribution shape) if not.
+- **WebSearch** for op-specific best-known techniques / numbers on the same hardware class.
+- **Review `ITERATIONS.md`** for patterns (which axes have been tried, which haven't, where prior wins came from).
+
+Default outcome: pick a new direction and continue. Only escalate to stop (see next section) if re-assessment produces concrete evidence the current state is at a physical floor.
+
+## When to stop
+
+Legitimate triggers:
+
+1. User-specified iteration cap reached (in prompt or `HINTS.md`).
+2. Stall re-assessment produced hard evidence of a floor — e.g., min runtime at cuda-event timer resolution, kernel arithmetic at HBM bandwidth limit, launch overhead dominating compute. Cite the evidence in `ITERATIONS.md`.
+3. All viable directions exhausted: document at least 3 distinct directions tried (with their iteration numbers) in `ITERATIONS.md` before invoking this trigger, to prevent premature stops.
+
+Do not stop silently because tooling is unavailable — that's a re-assessment input, not a stop reason.
+
+### HEAD handling on stop
+
+After deciding to stop, leave HEAD at the best-performing iter — not necessarily the latest. Procedure:
+
+1. Identify the best iter by reading `ITERATIONS.md` Summary, the bench output for each iter under `trajectory/`, and your own reasoning notes. Useful signals from KernelBench output: mean speedup, runtime std (consistency), min runtime (tail), `CORRECT` flag. Other bench harnesses expose different shapes — use what's available. Justify your pick in the commit message (e.g., "iter 4: best mean AND lowest min, while iter 6 ties on mean but has higher std").
+
+2. If best iter ≠ latest iter:
+   - `git checkout <best-iter-sha> -- solution/` — verbatim copy, do NOT hand-reconstruct from memory or earlier notes.
+   - `bash scripts/bench.sh final` to sanity-verify on a fresh run.
+   - `git commit -m "[final] Restore iter-K (X.XXx) — <one-sentence why>"`.
+
+3. If best iter == latest iter: no extra commit, HEAD is already correct.
+
+The `git checkout` step is mandatory. Manual reconstruction risks introducing silent drift from the actually-benched code.
+
+## ncu profiling — best effort, not a gate
+
+Probe `ncu` once after baseline. If it fails (driver mismatch, missing toolkit, user opt-out via free-text `HINTS.md` directive), record that fact once in `ITERATIONS.md` and proceed analytically for the rest of the loop. Don't gate iteration progress on ncu availability; analytical reasoning + runtime stats from the bench harness are a valid substitute for the optimizer's direction picking.
 
 ## Gotchas
 
@@ -111,7 +150,6 @@ Use `ncu` to profile and identify bottlenecks — do not optimize blindly. Read 
 - **The solution file must not contain `get_inputs` / `get_init_inputs`.** The bench script strips the solution's module-level tail before eval as an anti-cheat boundary. Inputs come from the reference or `--inputs` file, never the solution.
 - **`get_inputs()` must produce fresh data each call.** Bench calls it 5+ times across trials. Module-level cached tensors make correctness checks trivially pass and let timing measure cache-warm performance. Use `torch.randn` or reload from disk on every call.
 - **Don't be lazy.** Stay-in-PyTorch, only-tune-configurations, skip-profiling — these are the default low-effort failure modes for agents. The point of the loop is to *rewrite* the kernel — switch languages (Triton → CUDA, etc.) when it helps.
-- **Iteration cap is the user's call.** Default: no cap, decide when to stop yourself. If `HINTS.md` or the prompt names a limit, honor it. Stop early only when all viable directions are exhausted.
 
 ## Reference files
 

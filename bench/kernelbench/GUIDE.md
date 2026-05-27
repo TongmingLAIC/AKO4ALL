@@ -68,28 +68,35 @@ Exit code: `0` = correct, `1` = incorrect or failed.
 | `--inputs` | (none) | Optional file defining `get_inputs()` (required) and `get_init_inputs()` (optional); overrides definitions in `--ref` |
 | `--timing-method` | `cuda_event` | `cuda_event`, `host_time` |
 | `--precision` | `float32` | `float32`, `float16`, `bfloat16` |
-| `--backend` | `cuda` | `cuda`, `triton`, `tilelang`, `cute`, `hip` (see note below) |
+| `--backend` | auto-detected | `cuda`, `triton`, `tilelang`, `cute`, `hip` (auto-detected from solution source; pass explicitly to override — see below) |
 | `--num-correct-trials` | `5` | Number of correctness check iterations |
 | `--num-perf-trials` | `100` | Number of performance timing iterations |
 | `--verbose` | off | Print detailed debug info |
 | `--self-test` | off | Run source transformation self-test and exit |
 
-### Backend selection matters
+### Backend selection (auto-detected)
 
-The default `--backend cuda` loads the solution via `exec(<source>, context)` —
-which **rejects `@triton.jit` functions** with `@jit functions should be defined
-in a Python file` (Triton requires source from a real `.py`). If your solution
-uses Triton / TileLang / CuTe, pass `--backend triton` (or the matching name).
-The Triton-family backends load via tempfile + `importlib` so `@jit` source
-inspection works.
+`bench.py` picks the backend by sniffing the solution source: `@triton.jit` /
+`import triton` → `triton`; `import tilelang` → `tilelang`; `import cute` /
+`cute_dsl` → `cute`; otherwise `cuda` (exec-based loader handling raw CUDA +
+`cpp_extension.load[_inline]`). Pass `--backend <name>` only to override the
+sniff — useful for explicit HIP labelling or for mixed-backend solutions
+where the first match is wrong. The chosen backend is printed as
+`BACKEND: <name> (auto|explicit)` in the output.
 
-| Solution language | Required `--backend` |
-|-------------------|----------------------|
-| Raw CUDA via `torch.utils.cpp_extension.load[_inline]` | `cuda` (default) |
+The two loaders differ in how they execute solution code: `cuda` / `hip` use
+`exec()` (which rejects `@triton.jit` decorators with `@jit functions should
+be defined in a Python file`), while `triton` / `tilelang` / `cute` use
+tempfile + `importlib` so `@jit` source inspection works. `cuda` and `hip`
+are loader-equivalent; the distinction is informational only.
+
+| Solution language | Backend chosen |
+|-------------------|----------------|
+| Raw CUDA via `torch.utils.cpp_extension.load[_inline]` | `cuda` |
 | Triton (`@triton.jit`) | `triton` |
 | TileLang | `tilelang` |
 | CuTe | `cute` |
-| HIP | `hip` |
+| HIP | `cuda` (pass `--backend hip` explicitly if labelling matters) |
 
 ## Solution File Requirements
 

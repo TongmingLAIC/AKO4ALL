@@ -858,6 +858,21 @@ def prepare_solution_source(sol_src: str) -> str:
     return modified[:sol_tail_start].rstrip() + "\n"
 
 
+def _auto_detect_backend(sol_src: str) -> str:
+    """Pick backend from solution source. Conservative — defaults to cuda.
+
+    The `cuda` return also covers HIP at the loader level (both go through the
+    exec-based path); pass `--backend hip` explicitly if labelling matters.
+    """
+    if "@triton.jit" in sol_src or "import triton" in sol_src:
+        return "triton"
+    if "import tilelang" in sol_src:
+        return "tilelang"
+    if "import cute" in sol_src or "cute_dsl" in sol_src:
+        return "cute"
+    return "cuda"
+
+
 def load_inputs_module(path: str) -> tuple[Optional[callable], Optional[callable]]:
     """
     Load `get_inputs` (required) and `get_init_inputs` (optional) from an
@@ -1057,9 +1072,9 @@ def main():
     )
     parser.add_argument(
         "--backend",
-        default="cuda",
+        default=None,
         choices=["cuda", "triton", "tilelang", "cute", "hip"],
-        help="Backend for kernel compilation (default: cuda)",
+        help="Backend for kernel compilation. Auto-detected from solution source if omitted.",
     )
     parser.add_argument(
         "--num-correct-trials",
@@ -1100,6 +1115,12 @@ def main():
 
     ref_src = read_file(args.ref)
     sol_src = read_file(args.solution)
+
+    if args.backend is None:
+        args.backend = _auto_detect_backend(sol_src)
+        backend_origin = "auto"
+    else:
+        backend_origin = "explicit"
 
     modified_sol_src = prepare_solution_source(sol_src)
 
@@ -1143,6 +1164,7 @@ def main():
     if result is None:
         print("COMPILED: False")
         print("CORRECT: False")
+        print(f"BACKEND: {args.backend} ({backend_origin})")
         print("RUNTIME: -1")
         print("REF_RUNTIME: -1")
         print("SPEEDUP: -1")
@@ -1159,6 +1181,7 @@ def main():
 
     print(f"COMPILED: {result.compiled}")
     print(f"CORRECT: {result.correctness}")
+    print(f"BACKEND: {args.backend} ({backend_origin})")
     print(f"RUNTIME: {runtime_ms:.4f}" if runtime_ms > 0 else "RUNTIME: -1")
     print(
         f"REF_RUNTIME: {ref_runtime_ms:.4f}" if ref_runtime_ms > 0 else "REF_RUNTIME: -1"
