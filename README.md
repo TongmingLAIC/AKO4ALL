@@ -16,13 +16,19 @@
 
 ## What is AKO4ALL?
 
-**AKO4ALL is automated GPU kernel optimization powered by coding agents.** Provide any kernel — the agent iteratively rewrites it for maximum performance. Ships as a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill; other coding agents can drive the loop by following `SKILL.md` as a protocol document.
+**AKO4ALL is automated GPU kernel optimization, packaged as a single [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill.** Drop a kernel into your working directory, invoke the skill, and the agent bootstraps a workspace in place and iteratively rewrites the kernel for maximum performance — profile, edit, benchmark, repeat, until the kernel stops getting faster. The skill is a single `SKILL.md` protocol document; other coding agents can drive the same loop by following it directly.
 
 <p align="center">
   <img src="assets/hero.png" alt="A cartoon robot agent at a single workshop bench iterates on a glowing GPU kernel cube — with iteration logbook, profiler, timer, and commit stamp at hand, and a speedup chart on the chalkboard — illustrating AKO4ALL's single-session, drop-in kernel optimization loop." width="780" />
 </p>
 
-**AKO4ALL vs [AKO4X](https://github.com/TongmingLAIC/AKO4FIB)** — two sibling projects with different framings. AKO4ALL is the lightweight drop-in-a-kernel-get-it-optimized path: single-session, minimal infra; your benchmark (BYO script or built-in [KernelBench](https://github.com/ScalingIntelligence/KernelBench)) is a shell command the agent invokes directly. AKO4X is the **campaign-grade** tool: multi-round closed-loop with cross-run memory, an archive of variants feeding the next round, and master/sub agent separation (default benchmark: flashinfer-bench, swappable via adapter; coming soon — open-sourced after the [MLSys 2026 competition](https://mlsys26.flashinfer.ai/)).
+**AKO4ALL vs [AKO4X](https://github.com/TongmingLAIC/AKO4FIB)** — two sibling projects with different framings.
+
+- **Form:** AKO4ALL is a single Claude Code skill that runs in place in your working directory. AKO4X is a template repository that builds a fresh isolated child environment for each run.
+- **Unit of work:** AKO4ALL is *one continuous optimization run on one kernel* — resumable across chat sessions, but with no memory carried into the next run on the same kernel. AKO4X is a *multi-round campaign on one operator* — a persistent master agent spawns rounds back-to-back, and a per-operator archive accumulates each round's results so the Nth round is informed by all earlier rounds.
+- **Harness evolution:** AKO4ALL's protocol is static — you can supply behavior directives, but the skill itself does not change. AKO4X has an opt-in *harness co-evolution* mode in which the agent, after each round, can propose improvements to its own knowledge and tooling layer that the master gates and applies — no analogue here.
+
+Reach for AKO4ALL when you just want a kernel optimized; reach for AKO4X when you want infrastructure around the optimization. AKO4X is coming soon — open-sourced after the [MLSys 2026 competition](https://mlsys26.flashinfer.ai/).
 
 ## What You Provide
 
