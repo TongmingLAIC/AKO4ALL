@@ -7,7 +7,7 @@ Inlines core logic from KernelBench's eval.py and timing.py so no external
 KernelBench dependency is needed.
 
 Usage:
-    python bench/kernelbench/bench.py --ref input/kernel.py --solution solution/kernel.py [options]
+    python bench/kernelbench/bench.py --ref source/kernel.py --solution solution/kernel.py [options]
 
 Output (structured, one per line):
     COMPILED: True/False

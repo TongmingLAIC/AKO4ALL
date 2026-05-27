@@ -82,7 +82,7 @@ If you want to organize your inputs ahead of time, the conventional layout the s
 
 ```
 <workspace>/
-├── input/                       # Kernel files (single file or directory)
+├── source/                      # User-provided source: kernel + optional reference + inputs helper
 │   ├── kernel.py
 │   ├── reference.py             # Optional
 │   └── inputs.py / data.npz ... # Optional — input data, any format

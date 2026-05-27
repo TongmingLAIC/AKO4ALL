@@ -35,7 +35,7 @@ Browse the workspace (don't run a fixed checklist — look around) and read the 
 - **Bench mode** — user-provided bench script vs. default `bench/kernelbench/` evaluator
 - **Scaffold presence** — whether `bench-wrapper.sh`, `HINTS.md`, `ITERATIONS.md`, `bench/kernelbench/` are already at workspace root
 
-Whether the workspace follows AKO4ALL's `input/` / `knowledge/` / `bench/` naming or some entirely different layout is **not** the signal. What matters is whether you can identify each item above with confidence.
+Whether the workspace follows AKO4ALL's `source/` / `knowledge/` / `bench/` naming or some entirely different layout is **not** the signal. What matters is whether you can identify each item above with confidence.
 
 ### Ask only when genuinely uncertain
 

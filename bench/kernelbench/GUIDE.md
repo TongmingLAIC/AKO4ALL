@@ -16,16 +16,16 @@ Three pieces must be reachable at eval time:
 | `get_inputs()` returning sample input tensors | `--inputs` file > `--ref` file | Yes |
 | `get_init_inputs()` returning constructor args | `--inputs` file > `--ref` file > defaults to `[]` | No |
 
-The agent's job during Setup is to assemble these three pieces from whatever the user provided — by writing files into `input/` (or pointing `--ref` / `--inputs` at existing paths) so the bench command has what it needs. How to assemble them is up to the agent.
+The agent's job during Setup is to assemble these three pieces from whatever the user provided — by writing files into `source/` (or pointing `--ref` / `--inputs` at existing paths) so the bench command has what it needs. How to assemble them is up to the agent.
 
 ### Common assembly patterns
 
 These are typical paths, not rules. Use whichever shape fits the situation.
 
 - **KernelBench-format input** — A single file already contains all three pieces. Use it directly as `--ref`; omit `--inputs`.
-- **Raw kernel** (CUDA / Triton / CuTe-DSL / TileLang / ...) — Wrap the kernel into a `class Model` (e.g., `torch.utils.cpp_extension.load_inline` for CUDA) and define `get_inputs()`. Either keep both in one file used as `--ref`, or split: `class Model` in `--ref`, `get_inputs()` in a separate `input/inputs.py` passed via `--inputs`.
-- **Kernel + separate input data** — User provides a kernel plus data in some non-Python format (`.npz`, `.bin`, shape lists in `.txt`, etc.). Wrap the kernel into `class Model` in `--ref`, then write `input/inputs.py` whose `get_inputs()` loads the data file (`np.load`, `torch.load`, custom parser — agent's call) and returns tensors. Pass it via `--inputs`.
-- **Kernel referenced by external path** — User points at a kernel outside this repo (e.g., a path into a KernelBench dataset). `--ref` and `--inputs` accept arbitrary paths; no need to copy files into `input/`.
+- **Raw kernel** (CUDA / Triton / CuTe-DSL / TileLang / ...) — Wrap the kernel into a `class Model` (e.g., `torch.utils.cpp_extension.load_inline` for CUDA) and define `get_inputs()`. Either keep both in one file used as `--ref`, or split: `class Model` in `--ref`, `get_inputs()` in a separate `source/inputs.py` passed via `--inputs`.
+- **Kernel + separate input data** — User provides a kernel plus data in some non-Python format (`.npz`, `.bin`, shape lists in `.txt`, etc.). Wrap the kernel into `class Model` in `--ref`, then write `source/inputs.py` whose `get_inputs()` loads the data file (`np.load`, `torch.load`, custom parser — agent's call) and returns tensors. Pass it via `--inputs`.
+- **Kernel referenced by external path** — User points at a kernel outside this repo (e.g., a path into a KernelBench dataset). `--ref` and `--inputs` accept arbitrary paths; no need to copy files into `source/`.
 
 ### Pitfall: `get_inputs()` must produce fresh data per call
 
@@ -34,7 +34,7 @@ The bench script calls `get_inputs()` once per correctness trial (5 by default) 
 ### Bench command
 
 ```
-python bench/kernelbench/bench.py --ref input/<ref>.py --solution solution/<kernel>.py [--inputs input/inputs.py] --verbose
+python bench/kernelbench/bench.py --ref source/<ref>.py --solution solution/<kernel>.py [--inputs source/inputs.py] --verbose
 ```
 
 If the file passed to `--inputs` also defines `get_init_inputs()`, it overrides the ref's version too. The solution file keeps `class Model` — the bench script transparently renames it to `class ModelNew` before evaluation.
