@@ -16,7 +16,7 @@ Three pieces must be reachable at eval time:
 | `get_inputs()` returning sample input tensors | `--inputs` file > `--ref` file | Yes |
 | `get_init_inputs()` returning constructor args | `--inputs` file > `--ref` file > defaults to `[]` | No |
 
-The agent's job during Setup is to assemble these three pieces from whatever the user provided — by writing files into `source/` (or pointing `--ref` / `--inputs` at existing paths) so the bench command has what it needs. How to assemble them is up to the agent.
+The agent's job during Setup is to assemble these three pieces from whatever the user provided — usually by pointing `--ref` / `--inputs` at the files in their existing locations, or (only when a new helper file is genuinely needed, e.g., wrapping raw `.npz` data) by writing into `source/`. Don't move or copy existing user files just to canonicalize paths. How to assemble them is up to the agent.
 
 ### Common assembly patterns
 
@@ -34,7 +34,7 @@ The bench script calls `get_inputs()` once per correctness trial (5 by default) 
 ### Bench command
 
 ```
-python bench/kernelbench/bench.py --ref source/<ref>.py --solution solution/<kernel>.py [--inputs source/inputs.py] --verbose
+python bench/kernelbench/bench.py --ref <ref-path>.py --solution solution/<kernel>.py [--inputs <inputs-path>.py] --verbose
 ```
 
 If the file passed to `--inputs` also defines `get_init_inputs()`, it overrides the ref's version too. The solution file keeps `class Model` — the bench script transparently renames it to `class ModelNew` before evaluation.

@@ -61,7 +61,7 @@ If anything still feels uncertain at this point, **stop and ask**. Otherwise pro
 
 ### Bringing in scaffold
 
-When copying scaffold (`bench-wrapper.sh`, `bench/kernelbench/`, starter `HINTS.md` / `ITERATIONS.md`) from this skill's own directory into the workspace, **do not overwrite** files that already exist — the user may have edited `HINTS.md`, or `ITERATIONS.md` may carry prior iteration history. Copy only what's missing.
+When copying scaffold (`bench-wrapper.sh`, `bench/kernelbench/`, starter `HINTS.md` / `ITERATIONS.md`, `workspace.gitignore` → as `.gitignore` in the workspace) from this skill's own directory into the workspace, **do not overwrite** files that already exist — the user may have edited `HINTS.md`, or `ITERATIONS.md` may carry prior iteration history. Copy only what's missing.
 
 ### Persisting user-supplied hints
 
@@ -89,7 +89,7 @@ added, replaced, or silently dropped their directives. Always name the **source*
 
 1. **Analyze inputs.** Building on the inventory above, confirm `class Model` and `get_inputs()` can be assembled for default bench mode; if not, **stop and ask the user**. See `bench/kernelbench/GUIDE.md` for the input assembly contract (KernelBench-format input / raw kernel / kernel + separate data file / external path patterns).
 2. **Create branch.** `git checkout -b opt/<kernel-name>`. If the workspace isn't a git repo, init one first.
-3. **Initialize solution.** Create `solution/` and `scripts/`. Copy the kernel implementation files into `solution/` (only the kernel itself — reference / inputs helper files stay at their resolved locations).
+3. **Initialize solution.** Create `solution/` and `scripts/`. Copy the kernel implementation files into `solution/` (only the kernel itself — reference / inputs helper files stay at their resolved locations). **Do not copy or `mkdir` canonical directories** (`source/`, `input/`, etc.) when the user's files already exist elsewhere. Point bench.sh's `--ref` and `--inputs` flags at the resolved paths in place. `solution/` is the only directory the loop owns.
 4. **Generate bench.sh.** Build the bench command with adjusted paths, pipe through `2>&1 | tee _bench_output.txt`. Replace `{{BENCH_COMMAND}}` in `bench-wrapper.sh` to produce `scripts/bench.sh`. For default bench mode the command is `python bench/kernelbench/bench.py --ref <ref> --solution solution/<kernel> [--inputs <inputs-file>] --verbose` — include `--inputs` only when inputs are defined outside the ref file. **Do not hardcode `--backend`** in the rendered command; bench.py auto-detects backend from solution source. Add `--backend` only to override the sniff (explicit HIP labelling or mixed-backend solutions).
 5. **Verify baseline.** Run `bash scripts/bench.sh`. Expect `CORRECT=True`. If not, diagnose and fix before iterating. Commit: `git add -A && git commit -m "[baseline] Initialize solution and benchmark"`. Then run `ncu` once on the baseline to inform iter-1 direction.
 
@@ -102,6 +102,8 @@ A failed or partial bench is still an iteration — complete steps 2 and 3 anywa
 1. `bash scripts/bench.sh iter-N` — label is required, must match `iter-N` format.
 2. Append a structured entry to `ITERATIONS.md` (template inside that file).
 3. `git commit -m "[iter N] <short description of optimization direction>"`.
+
+Do not squash multiple iters into one commit, even if they share a theme or feel like "polishing". Each iter must be its own sha-addressable point — otherwise the `When to stop` HEAD restore (`git checkout <best-iter-sha> -- solution/`) cannot reach earlier iters' code. If related experiments belong together narratively, group them in `ITERATIONS.md` analysis prose, not in git commits.
 
 Profile to identify bottlenecks — see "ncu profiling" below for the ncu workflow and analytical fallback. Do not optimize blindly.
 
@@ -142,14 +144,14 @@ The `git checkout` step is mandatory. Manual reconstruction risks introducing si
 
 ## ncu profiling — best effort, not a gate
 
-Probe `ncu` once after baseline. If it fails (driver mismatch, missing toolkit, user opt-out via free-text `HINTS.md` directive), record that fact once in `ITERATIONS.md` and proceed analytically for the rest of the loop. Don't gate iteration progress on ncu availability; analytical reasoning + runtime stats from the bench harness are a valid substitute for the optimizer's direction picking.
+Probe `ncu` once after baseline. If it fails (driver mismatch, missing toolkit, user opt-out via free-text `HINTS.md` directive), proceed analytically for the rest of the loop without re-probing within this session. Don't gate iteration progress on ncu availability; analytical reasoning + runtime stats from the bench harness are a valid substitute for the optimizer's direction picking.
 
 ## Gotchas
 
 - **Pursue genuine latency reduction, not reward hacking.** No CUDA stream injection to evade timing, no monkey-patching the benchmark, no returning uninitialized results. The built-in evaluator flags >10× speedups for a reason — investigate before celebrating.
 - **The solution file must not contain `get_inputs` / `get_init_inputs`.** The bench script strips the solution's module-level tail before eval as an anti-cheat boundary. Inputs come from the reference or `--inputs` file, never the solution.
 - **`get_inputs()` must produce fresh data each call.** Bench calls it 5+ times across trials. Module-level cached tensors make correctness checks trivially pass and let timing measure cache-warm performance. Use `torch.randn` or reload from disk on every call.
-- **Don't be lazy.** Stay-in-PyTorch, only-tune-configurations, skip-profiling — these are the default low-effort failure modes for agents. The point of the loop is to *rewrite* the kernel — switch languages (Triton → CUDA, etc.) when it helps.
+- **Don't be lazy.** Stay-in-PyTorch, only-tune-configurations, skip-profiling — these are the default low-effort failure modes for agents. The point of the loop is to *rewrite* the implementation — switch languages (Triton → CUDA, etc.) when it helps.
 
 ## Reference files
 
