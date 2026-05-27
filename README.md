@@ -9,12 +9,6 @@
 
 <p align="center"><b>If you find our work useful, please consider giving us a star 🌟</b></p>
 
-<p align="center">
-  <img src="assets/sol_001_optimization.png" alt="AKO4ALL optimization trajectory on SOL-ExecBench L1-001" width="100%">
-</p>
-
-*Optimization trajectory on [SOL-ExecBench](https://github.com/NVIDIA/SOL-ExecBench) L1-001 (Attention Softmax+Dropout+Value Matmul Backward). 41 iterations, 8.93× average speedup over the PyTorch reference. Developed on A100-SXM4-80GB, ~2 hours total.*
-
 Agentic Kernel Optimization for All — automated GPU kernel optimization powered by coding agents. Provide any kernel — the agent iteratively rewrites it for maximum performance. Ships as a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill; other coding agents can drive the loop by following `SKILL.md` as a protocol document.
 
 **AKO4ALL is the lightweight drop-in-a-kernel-get-it-optimized path** — single-session, minimal infra; your benchmark (BYO script or built-in KernelBench) is a shell command the agent invokes directly. For **batch evaluation against the standardized flashinfer-bench operator suite** (comparable speedups across many kernels), see the sibling project [AKO4FIB](https://github.com/TongmingLAIC/AKO4FIB) (coming soon — open-sourced after the [MLSys 2026 competition](https://mlsys26.flashinfer.ai/)).
