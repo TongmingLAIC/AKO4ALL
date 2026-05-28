@@ -138,8 +138,6 @@ After deciding to stop, leave HEAD at the best-performing iter — not necessari
    - `bash scripts/bench.sh final` to sanity-verify on a fresh run.
    - `git commit -m "[final] Restore iter-K (X.XXx) — <one-sentence why>"`.
 
-3. If best iter == latest iter: no extra commit, HEAD is already correct.
-
 The `git checkout` step is mandatory. Manual reconstruction risks introducing silent drift from the actually-benched code.
 
 ## ncu profiling — best effort, not a gate
