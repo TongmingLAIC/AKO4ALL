@@ -94,15 +94,15 @@ added, replaced, or silently dropped their directives. Always name the **source*
 
 ## Iteration protocol
 
-Every modification to `solution/` followed by a bench run = one iteration. Number sequentially (1, 2, 3, …). **All three steps below MUST complete before you do anything else — including starting the next iteration, replying to the user, or yielding the turn. Skipping any breaks the trajectory log.**
-
-A failed or partial bench is still an iteration — complete steps 2 and 3 anyway. Silent abandonment loses the trajectory and makes the next iter's analysis harder.
+Every modification to `solution/` followed by a bench run = one iteration. Number sequentially (1, 2, 3, …). Each iter is exactly three steps:
 
 1. `bash scripts/bench.sh iter-N` — label is required, must match `iter-N` format.
 2. Append a structured entry to `ITERATIONS.md` (template inside that file).
 3. `git commit -m "[iter N] <short description of optimization direction>"`.
 
-Concretely: before editing `solution/` for the next iter, `git status` MUST be clean and `git log -1` MUST show `[iter N] ...`. If either check fails, you skipped step 2 or 3 of the iter you just ran — **stop** and finish them before the next edit. Related experiments that belong together narratively get grouped in `ITERATIONS.md` analysis prose, not in batched git commits.
+**Steps 2 and 3 MUST be the next two tool calls after step 1 — no ncu, no probes, no reads, no planning the next iter between them.** A failed or partial bench is still an iter; log + commit first, debug after. This is the most-missed step in practice: agents read the bench result and telescope into next-iter analysis (probes, ncu, hypothesis forming) without closing out the current one, leaving commit gaps with `ITERATIONS.md` entries written from memory later.
+
+Backstop: if you catch yourself starting a new iter (Editing `solution/`, or running ncu/probes for the next direction) and `git log -1` doesn't show `[iter N] ...`, stop and finish the prior iter's steps 2 and 3 first. Related experiments that belong together narratively get grouped in `ITERATIONS.md` analysis prose, not in batched git commits.
 
 Profile to identify bottlenecks — see "ncu profiling" below for the ncu workflow and analytical fallback. Do not optimize blindly.
 
