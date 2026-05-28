@@ -4,14 +4,19 @@
 set -eo pipefail
 cd "$(dirname "$0")/.."
 
-# Defensive: if CUDA_HOME is unset and we're in a conda env, point CUDA_HOME at
-# the env's CUDA toolkit. Otherwise torch.cpp_extension can fall back to a system
-# /usr/local/cuda symlink that may point at an older CUDA than torch was built
-# against (e.g., cu130 torch + symlink → cuda-11.8 → cudaDeviceProp ABI mismatch
-# → SIGFPE in load_inline). Common on multi-CUDA hosts.
-if [ -z "$CUDA_HOME" ] && [ -n "$CONDA_PREFIX" ]; then
-    export CUDA_HOME="$CONDA_PREFIX"
-    echo "[bench-wrapper] Auto-set CUDA_HOME=$CUDA_HOME (conda env). Override by exporting CUDA_HOME yourself." >&2
+# Detect toolkit-vs-torch ambiguity and warn — don't auto-set CUDA_HOME.
+# Auto-set is unreliable when active conda env != target python env (e.g.,
+# base shell running envs/X/bin/python directly), and a wrong CUDA_HOME
+# silently produces ABI mismatches in torch.cpp_extension / load_inline
+# (e.g., cu130 torch + cu117 nvcc → cudaDeviceProp mismatch → SIGFPE).
+# Common on multi-CUDA hosts.
+if [ -z "$CUDA_HOME" ]; then
+    TORCH_CU=$(python -c "import torch; print(torch.version.cuda)" 2>/dev/null || echo "")
+    if [ -n "$TORCH_CU" ]; then
+        echo "[bench-wrapper] CUDA_HOME unset; torch built with CUDA $TORCH_CU." >&2
+        echo "  For load_inline / cpp_extension, export CUDA_HOME to the env whose nvcc matches CUDA $TORCH_CU, e.g.:" >&2
+        echo "    export CUDA_HOME=\$(python -c 'import sys; print(sys.prefix)')" >&2
+    fi
 fi
 
 LABEL="${1:-}"
