@@ -69,21 +69,20 @@ The user may supply behavior directives in two ways:
 - **Inline in the prompt** — e.g., "do not use shared memory" or "prefer Triton".
 - **External file reference** — e.g., "follow rules in /tmp/x.md" or "see hints.md".
 
-In **both cases**, merge those directives into `HINTS.md` alongside the defaults
-(do not overwrite the defaults). `HINTS.md` is the persistence layer — directives
-that only live in the current session's plan are lost on resume.
+In **both cases**, merge those directives into `HINTS.md`. It's the persistence
+layer — directives that only live in the current session's plan are lost on resume.
 
 ### Surfacing HINTS.md changes
 
 Whenever you merge directives into `HINTS.md`, tell the user explicitly what
 happened. Example phrasings:
 
-> "I merged your 2 directives into HINTS.md alongside the 2 default entries."
-> "I added the 3 rules from /tmp/user-hints.md to HINTS.md; the 2 defaults are preserved."
+> "I added your 'avoid shared memory' directive from the prompt to HINTS.md."
+> "I added the 3 rules from /tmp/user-hints.md to HINTS.md."
 
 Without this acknowledgment the user can't tell from your reply whether you
 added, replaced, or silently dropped their directives. Always name the **source**
-("from your prompt" / "from /tmp/x.md") and the **count of defaults retained**.
+("from your prompt" / "from /tmp/x.md").
 
 ## Workflow
 
