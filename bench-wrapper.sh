@@ -10,10 +10,10 @@ cd "$(dirname "$0")/.."
 # silently produces ABI mismatches in torch.cpp_extension / load_inline
 # (e.g., cu130 torch + cu117 nvcc → cudaDeviceProp mismatch → SIGFPE).
 # Common on multi-CUDA hosts.
-if [ -z "$CUDA_HOME" ]; then
+if ! [ -x "${CUDA_HOME%%:*}/bin/nvcc" ]; then
     TORCH_CU=$(python -c "import torch; print(torch.version.cuda)" 2>/dev/null || echo "")
     if [ -n "$TORCH_CU" ]; then
-        echo "[bench-wrapper] CUDA_HOME unset; torch built with CUDA $TORCH_CU." >&2
+        echo "[bench-wrapper] CUDA_HOME=${CUDA_HOME:-(unset)} → no nvcc found; torch built with CUDA $TORCH_CU." >&2
         echo "  For load_inline / cpp_extension, export CUDA_HOME to the env whose nvcc matches CUDA $TORCH_CU, e.g.:" >&2
         echo "    export CUDA_HOME=\$(python -c 'import sys; print(sys.prefix)')" >&2
     fi
