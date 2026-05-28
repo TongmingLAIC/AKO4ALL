@@ -103,7 +103,7 @@ A failed or partial bench is still an iteration — complete steps 2 and 3 anywa
 2. Append a structured entry to `ITERATIONS.md` (template inside that file).
 3. `git commit -m "[iter N] <short description of optimization direction>"`.
 
-Do not squash multiple iters into one commit, even if they share a theme or feel like "polishing". Each iter must be its own sha-addressable point — otherwise the `When to stop` HEAD restore (`git checkout <best-iter-sha> -- solution/`) cannot reach earlier iters' code. If related experiments belong together narratively, group them in `ITERATIONS.md` analysis prose, not in git commits.
+Concretely: before editing `solution/` for the next iter, `git status` MUST be clean and `git log -1` MUST show `[iter N] ...`. If either check fails, you skipped step 2 or 3 of the iter you just ran — **stop** and finish them before the next edit. Related experiments that belong together narratively get grouped in `ITERATIONS.md` analysis prose, not in batched git commits.
 
 Profile to identify bottlenecks — see "ncu profiling" below for the ncu workflow and analytical fallback. Do not optimize blindly.
 
