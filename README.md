@@ -3,7 +3,7 @@
 
 <p align="center">
   <a href="https://tongminglaic.github.io/AKO"><img src="https://img.shields.io/badge/Project-Page-blue" alt="Project Page"></a>
-  <a href="https://github.com/TongmingLAIC/AKO4FIB"><img src="https://img.shields.io/badge/GitHub-AKO4X-blue?logo=github" alt="AKO4X"></a>
+  <a href="https://github.com/TongmingLAIC/AKO4X"><img src="https://img.shields.io/badge/GitHub-AKO4X-blue?logo=github" alt="AKO4X"></a>
   <img src="https://img.shields.io/badge/Tech%20Report-Coming%20Soon-gray" alt="Tech Report">
 </p>
 
@@ -11,7 +11,11 @@
 
 ## News
 
-- 📢 **[2026.03.28]** [AKO4X](https://github.com/TongmingLAIC/AKO4FIB) coming soon — will be open-sourced after the [MLSys 2026 competition](https://mlsys26.flashinfer.ai/).
+<!-- On AKO tech-report release day, uncomment this entry (it is the newest — keep it on top) and fill in the date + link:
+- 📄 **[YYYY.MM.DD]** The **[AKO tech report](<TECH_REPORT_LINK>)** is now available — the case for agentic over fixed-pipeline kernel optimization.
+-->
+- 🚀 **[2026.XX.XX]** [**AKO4X**](https://github.com/TongmingLAIC/AKO4X) is now open-source — the closed-loop, campaign-based system behind our [MLSys 2026 competition](https://mlsys26.flashinfer.ai/) entry.
+- ✨ **[2026.XX.XX]** **AKO4ALL** is now a single drop-in [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill — invoke it in any working directory.
 - 🚀 **[2026.03.24]** AKO4ALL is released.
 
 ## What is AKO4ALL?
@@ -22,13 +26,13 @@
   <img src="assets/hero.png" alt="A cartoon robot agent at a single workshop bench iterates on a glowing GPU kernel cube — with iteration logbook, profiler, timer, and commit stamp at hand, and a speedup chart on the chalkboard — illustrating AKO4ALL's single-session, drop-in kernel optimization loop." width="780" />
 </p>
 
-**AKO4ALL vs [AKO4X](https://github.com/TongmingLAIC/AKO4FIB)** — two sibling projects with different framings.
+**AKO4ALL vs [AKO4X](https://github.com/TongmingLAIC/AKO4X)** — two sibling projects with different framings.
 
 - **Form:** AKO4ALL is a single Claude Code skill that runs in place in your working directory. AKO4X is a template repository that builds a fresh isolated child environment for each run.
 - **Unit of work:** AKO4ALL is *one continuous optimization run on one kernel* — resumable across chat sessions, but with no memory carried into the next run on the same kernel. AKO4X is a *multi-round campaign on one operator* — a persistent master agent spawns rounds back-to-back, and a per-operator archive accumulates each round's results so the Nth round is informed by all earlier rounds.
 - **Harness evolution:** AKO4ALL's protocol is static — you can supply behavior directives, but the skill itself does not change. AKO4X has an opt-in *harness co-evolution* mode in which the agent, after each round, can propose improvements to its own knowledge and tooling layer that the master gates and applies — no analogue here.
 
-Reach for AKO4ALL when you just want a kernel optimized; reach for AKO4X when you want infrastructure around the optimization. AKO4X is coming soon — open-sourced after the [MLSys 2026 competition](https://mlsys26.flashinfer.ai/).
+Reach for AKO4ALL when you just want a kernel optimized; reach for AKO4X when you want infrastructure around the optimization.
 
 ## What You Provide
 
@@ -197,7 +201,7 @@ Three layers of protection against the agent gaming the metric instead of achiev
 ## FAQ
 
 **Can I use AKO4ALL for a whole benchmark suite?**
-For ad-hoc optimization of several kernels at once, see [Mode 2](#mode-2--batch-via-subagents-advanced). For campaign-grade multi-round optimization — cross-run memory, an archive of variants feeding the next round, and master/sub agent separation — see [AKO4X](https://github.com/TongmingLAIC/AKO4FIB) (default benchmark: flashinfer-bench, swappable via adapter).
+For ad-hoc optimization of several kernels at once, see [Mode 2](#mode-2--batch-via-subagents-advanced). For campaign-grade multi-round optimization — cross-run memory, an archive of variants feeding the next round, and master/sub agent separation — see [AKO4X](https://github.com/TongmingLAIC/AKO4X) (default benchmark: flashinfer-bench, swappable via adapter).
 
 **My agent isn't trying hard enough — keeps tuning configs instead of rewriting.**
 Agent laziness is a known failure mode (staying in PyTorch, only tuning configurations, skipping profiling). Intervene with specific guidance, or add directives to `HINTS.md` ahead of time. The point of the loop is to *rewrite* the kernel — switch languages (Triton → CUDA, etc.) when it helps.
