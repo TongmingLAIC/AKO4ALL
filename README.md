@@ -29,6 +29,7 @@
 - [What You Provide](#what-you-provide)
 - [Install](#install)
 - [How to Use](#how-to-use)
+- [Apple Silicon / Metal](#apple-silicon--metal)
 - [Requirements](#requirements)
 - [How It Works](#how-it-works)
 - [Results](#results)
@@ -140,10 +141,46 @@ For optimizing several related kernels in parallel, in Claude Code the main agen
 
 > ⚠️ **Subagents can't ask back.** In Claude Code, subagents lack `AskUserQuestion`. The main agent composes each subagent's prompt from your instructions plus what's in each kernel's directory; any decision you don't pin down there will fall to `SKILL.md` defaults. So include the things you care about (per-kernel paths, optional reference / inputs locations, language or iteration-cap constraints, custom branch names) — and let the rest default.
 
+## Apple Silicon / Metal
+
+The Metal route keeps native C++/Objective-C++/MSL runtimes and supports both
+kernel microbenchmarks and on-device inference qualification. Read
+[the Metal workflow](references/metal.md) before starting an experiment.
+
+`bench/metal/evaluate.py` runs existing correctness commands, holds the shared GPU
+lock, measures A1 B1 A2 B2, and produces a machine-readable acceptance report.
+Missing/failed checks and invalid/non-finite metrics cannot pass. It keeps raw
+logs, hashes the measured artifacts, and refuses to overwrite an evidence folder.
+No CUDA or PyTorch dependency is needed for this runner.
+
+For Kapitsa, `bench/metal/kapitsa.py` connects the existing `logit_dump` /
+`logit_compare.py` output gate and `kapitsa bench` measurements. Start from
+`bench/metal/kapitsa.example.json`, set real paths and the agreed thresholds,
+and add the repository-required small-size shader-validation command.
+
+```bash
+# Configuration validation only: no GPU or model is used.
+python3 bench/metal/evaluate.py bench/metal/kapitsa.example.json \
+  --out /path/to/new/evidence --dry-run
+```
+
+```text
+Use $ako4all to optimize the Metal kernel in this Kapitsa worktree for on-device
+inference. Follow AGENTS.md, use our fixed output gate and A/B benchmark, and run
+at most 10 iterations plus final verification. GPU/model use requires the task's
+explicit authorization. Keep every trial and retain only an accepted candidate.
+```
+
+CPU fixtures exercise the runner and adapter. **Not verified on a GPU:** this
+branch does not claim Metal correctness, model parity, or a speedup without a
+real authorized run. The supplied quick inference adapter does not replace server,
+long-context, or other model coverage required by the target repository.
+
 ## Requirements
 
 - Codex or Claude Code with access to the chosen benchmark environment
-- NVIDIA GPU with CUDA-enabled PyTorch (only for the built-in evaluator; a remote-execution bench script may not need either locally)
+- CUDA route: NVIDIA GPU with CUDA-enabled PyTorch for the built-in KernelBench evaluator.
+- Metal route: Apple Silicon macOS, Python 3.9+, and the target project's native build/test tools; no PyTorch requirement. A remote custom benchmark uses its own prerequisites.
 - Python **>= 3.10** for the built-in evaluator (or whatever your custom bench script requires)
 - NVIDIA Nsight Compute (`ncu`) — recommended; its version must match your CUDA / PyTorch CUDA build. If unavailable, the loop still proceeds (no profiling — the agent reasons from runtime stats instead).
 - Git
@@ -232,13 +269,15 @@ For Codex, see [noninteractive execution](references/codex.md#run-from-a-script)
 AKO4ALL/
 ├── SKILL.md              # Shared Codex / Claude Code workflow
 ├── agents/openai.yaml    # Codex skill metadata
-├── references/codex.md   # Codex invocation and recovery
+├── references/           # Codex usage and Metal/inference workflow
 ├── tools/                # Skill installer
 ├── tests/                # CPU-only packaging regressions
 ├── HINTS.md              # Scaffold: agent behavior defaults
 ├── ITERATIONS.md         # Scaffold: iteration log template
 ├── bench-wrapper.sh      # Scaffold: bench script template
-└── bench/kernelbench/    # Scaffold: built-in KernelBench evaluator
+└── bench/
+    ├── kernelbench/     # CUDA KernelBench evaluator
+    └── metal/           # A/B gate runner and Kapitsa adapter
 ```
 
 Scaffold files are copied into each workspace on first bootstrap, never overwriting existing files. `README.md` and `assets/` remain in the source checkout. The Codex installer includes `LICENSE` with the runtime resources.

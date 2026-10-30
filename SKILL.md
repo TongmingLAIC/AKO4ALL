@@ -1,6 +1,6 @@
 ---
 name: ako4all
-description: Iteratively optimize a GPU kernel with correctness checks, profiling, measured benchmarks, and recoverable experiment history. Use in Codex or Claude Code when the user requests an AKO4ALL optimization run or asks to make a concrete kernel faster. A profiling-only or benchmark-only request does not authorize changing the implementation.
+description: Iteratively optimize a GPU kernel with correctness checks, profiling, measured benchmarks, and recoverable experiment history. Use in Codex or Claude Code when the user requests an AKO4ALL optimization run or asks to make a concrete CUDA, Triton, or Metal kernel faster, including Apple Silicon on-device inference. A profiling-only or benchmark-only request does not authorize changing the implementation.
 ---
 
 # AKO4ALL — Agentic Kernel Optimization
@@ -9,9 +9,24 @@ Drive a profile → modify → benchmark → log → commit loop on a GPU kernel
 
 In Codex, read [references/codex.md](references/codex.md) for installation, invocation, and session recovery. This is a workflow for the current coding agent; it does not require launching Claude Code or another model.
 
+## Hardware and runtime route
+
+For Apple Silicon / Metal kernels or on-device inference, read
+[references/metal.md](references/metal.md) and use `bench/metal/evaluate.py` with
+the target repository's native correctness and timing commands. That route
+replaces the CUDA evaluator, `ncu`, and `solution/`-copy assumptions below;
+it retains the shared budget, evidence, recovery, and final-verification rules.
+Copy the `bench/metal/` resources from the resolved skill root if needed. Never
+import CUDA/PyTorch just to benchmark a Metal task. A kernel-only pass does not
+qualify a model change; the inference route adds the repository's output gate.
+
+For CUDA-backed kernels, use the existing KernelBench or user-provided evaluator
+below. The chosen runtime and numerical contract stay fixed throughout the run.
+
 ## When this skill applies
 
-- "optimize this kernel" / "speed up this CUDA / Triton / TileLang kernel"
+- "optimize this kernel" / "speed up this CUDA / Triton / TileLang / Metal kernel"
+- "optimize Apple Silicon on-device inference with measured output and performance gates"
 - "run AKO / AKO4ALL on ..."
 - "iterate on this kernel until it's faster"
 - a concrete GPU speedup target with permission to modify the kernel
