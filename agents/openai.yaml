@@ -1,0 +1,4 @@
+interface:
+  display_name: "AKO4ALL"
+  short_description: "Iterate on GPU kernels with measured validation"
+  default_prompt: "Use $ako4all to optimize this kernel within the stated budget, verify correctness, and retain the best measured candidate."

@@ -1,28 +1,29 @@
 ---
 name: ako4all
-description: Drive an agentic loop that iteratively optimizes a GPU kernel for maximum speedup. Use this skill whenever the user wants to optimize / speed up / benchmark a GPU kernel (CUDA, Triton, TileLang, C++, Python), mentions AKO / AKO4ALL / AKO4X / agentic kernel optimization, asks to "make this kernel faster", or has a kernel they want measured against a PyTorch reference. The skill handles setup, profiling (ncu), correctness checking, iteration logging, and git commits. Bootstraps a workspace in any directory the user points at.
+description: Iteratively optimize a GPU kernel with correctness checks, profiling, measured benchmarks, and recoverable experiment history. Use in Codex or Claude Code when the user requests an AKO4ALL optimization run or asks to make a concrete kernel faster. A profiling-only or benchmark-only request does not authorize changing the implementation.
 ---
 
 # AKO4ALL — Agentic Kernel Optimization
 
-Drive a profile → modify → benchmark → log → commit loop on a GPU kernel until it runs faster than the reference. The user provides at minimum a kernel; everything else (reference, inputs, bench script, hints) is optional.
+Drive a profile → modify → benchmark → log → commit loop on a GPU kernel. Preserve the best correct implementation within the requested budget; a speedup is an experimental result, not a guaranteed outcome. Identify a runnable kernel and test inputs before measuring.
+
+In Codex, read [references/codex.md](references/codex.md) for installation, invocation, and session recovery. This is a workflow for the current coding agent; it does not require launching Claude Code or another model.
 
 ## When this skill applies
 
 - "optimize this kernel" / "speed up this CUDA / Triton / TileLang kernel"
 - "run AKO / AKO4ALL on ..."
-- "benchmark this kernel against PyTorch"
 - "iterate on this kernel until it's faster"
-- mentions of `ncu`, kernel profiling, GPU speedup target
+- a concrete GPU speedup target with permission to modify the kernel
 
 Does NOT apply when:
 - User wants to *write* a new kernel from scratch with no optimization target — just write code, no loop.
-- User wants Codex / GPT to review or implement — use `codex:rescue` instead.
+- User only requests a review, profiling, or a benchmark. Perform that requested work without starting an optimization loop.
 - User wants generic performance advice for code that isn't a GPU kernel.
 
 ## First action
 
-Before doing anything else, establish the **workspace** — the directory the loop runs in. It is typically the user's CWD, or a subdirectory / path they name in the prompt.
+Establish the **workspace** — the directory the loop runs in — and read its applicable `AGENTS.md` / contribution rules before editing. Follow the user's chosen runtime, repository layout, branch, and authorization for GPU use, dependency installation, commits, and publication. The skill supplies no permission to publish or to run a model. Use an isolated experiment workspace when the repository excludes experiment logs; keep its rules applicable to any source copied there.
 
 ### Inventory the workspace + prompt
 
@@ -45,9 +46,7 @@ If the user's prompt + filesystem give you confidence about every required item,
 
 Whether you asked the user or not, list back what you decided — so the user can correct you even when you didn't think you needed to ask.
 
-Use the format below. Bold field labels + inline-code path values + the leading emoji marker make the plan visually scannable in any terminal theme (don't flatten to a wall of prose):
-
-**📋 Resolved Plan**
+Present the resolved fields concisely in the host's normal progress format:
 
 - **Workspace** — `<path>`
 - **Kernel** — `<path>`
@@ -55,13 +54,14 @@ Use the format below. Bold field labels + inline-code path values + the leading 
 - **Input data** — `<path>` *(or inline in ref, or none)*
 - **Knowledge** — `<path>` *(or none)*
 - **Bench mode** — default (KernelBench) *(or custom: `<path>`)*
+- **Budget and acceptance** — iteration/time limit, shapes, numerical gate, measurement boundary, and required GPU authorization
 - **Scaffold to copy** — `<list of missing files>` *(or none — already present)*
 
 If anything still feels uncertain at this point, **stop and ask**. Otherwise proceed to Workflow.
 
 ### Bringing in scaffold
 
-When copying scaffold (`bench-wrapper.sh`, `bench/kernelbench/`, starter `HINTS.md` / `ITERATIONS.md`, `workspace.gitignore` → as `.gitignore` in the workspace) from this skill's own directory into the workspace, **do not overwrite** files that already exist — the user may have edited `HINTS.md`, or `ITERATIONS.md` may carry prior iteration history. Copy only what's missing.
+Resolve scaffold paths from the loaded `SKILL.md` directory, not the task's CWD. When copying scaffold (`bench-wrapper.sh`, `bench/kernelbench/`, starter `HINTS.md` / `ITERATIONS.md`, `workspace.gitignore` → as `.gitignore` in the workspace), **do not overwrite** files that already exist — the user may have edited `HINTS.md`, or `ITERATIONS.md` may carry prior iteration history. Copy only what's missing.
 
 ### Persisting user-supplied hints
 
@@ -87,24 +87,24 @@ added, replaced, or silently dropped their directives. Always name the **source*
 ## Workflow
 
 1. **Analyze inputs.** Building on the inventory above, confirm `class Model` and `get_inputs()` can be assembled for default bench mode; if not, **stop and ask the user**. See `bench/kernelbench/GUIDE.md` for the input assembly contract (KernelBench-format input / raw kernel / kernel + separate data file / external path patterns).
-2. **Create branch.** `git checkout -b opt/<kernel-name>`. If the workspace isn't a git repo, init one first.
+2. **Choose branch.** Reuse the task branch when one exists. Otherwise create an experiment branch following repository conventions (`codex/opt-<kernel-name>` in Codex, `opt/<kernel-name>` in Claude Code). Preserve unrelated work. Initialize Git only in a new experiment directory intended for this run.
 3. **Initialize solution.** Create `solution/` and `scripts/`. Copy the kernel implementation files into `solution/` (only the kernel itself — reference / inputs helper files stay at their resolved locations). **Do not copy or `mkdir` canonical directories** (`source/`, `input/`, etc.) when the user's files already exist elsewhere. Point bench.sh's `--ref` and `--inputs` flags at the resolved paths in place. `solution/` is the only directory the loop owns.
 4. **Generate bench.sh.** Build the bench command with adjusted paths, pipe through `2>&1 | tee _bench_output.txt`. Replace `{{BENCH_COMMAND}}` in `bench-wrapper.sh` to produce `scripts/bench.sh`. For default bench mode the command is `python bench/kernelbench/bench.py --ref <ref> --solution solution/<kernel> [--inputs <inputs-file>] --verbose` — include `--inputs` only when inputs are defined outside the ref file. **Do not hardcode `--backend`** in the rendered command; bench.py auto-detects backend from solution source. Add `--backend` only to override the sniff (explicit HIP labelling or mixed-backend solutions). `scripts/bench.sh` is a starting template — when the bench env needs setup (conda activate, sub-env python paths, multi-CUDA toolkit selection), edit it freely; preserve only the trajectory section (LABEL/TIMESTAMP handling and `cp -r solution/* "$TRAJ_DIR/"`).
 
    **Common env friction:** base shell often has no `python` on PATH when python lives in a sub-env (e.g. `~/anaconda3/envs/py312/bin/python`). Tools that internally subprocess `python` (sol-execbench CLI, torch `cpp_extension.load_inline`) will then fail with `command not found`. Workaround: put `PATH=<env-bin>:$PATH` at the top of `scripts/bench.sh` (or `source <conda>/etc/profile.d/conda.sh && conda activate <env>`). Discover sub-envs via `ls /home/*/anaconda3/envs/*/bin /root/*/envs/*/bin /opt/conda/envs/*/bin 2>/dev/null`.
-5. **Verify baseline.** Run `bash scripts/bench.sh`. Expect `CORRECT=True`. If not, diagnose and fix before iterating. Commit: `git add -A && git commit -m "[baseline] Initialize solution and benchmark"`. Then run `ncu` once on the baseline to inform iter-1 direction.
+5. **Verify baseline.** Run `bash scripts/bench.sh`. Expect `CORRECT=True`. If not, diagnose and fix before iterating. If commits are allowed, stage only this experiment's source and allowed records, inspect the staged diff, then commit with `[baseline] Initialize solution and benchmark`. Do not stage unrelated changes, models, binaries, credentials, or repository-excluded logs. Then run `ncu` once on the baseline to inform iter-1 direction.
 
 ## Iteration protocol
 
-Every modification to `solution/` followed by a bench run = one iteration. Number sequentially (1, 2, 3, …). Each iter is exactly three steps:
+Every modification to `solution/` followed by a bench run = one iteration. Number sequentially (1, 2, 3, …). Complete each iteration in this order:
 
 1. `bash scripts/bench.sh iter-N` — label is required, must match `iter-N` format.
 2. Append a structured entry to `ITERATIONS.md` (template inside that file).
-3. `git commit -m "[iter N] <short description of optimization direction>"`.
+3. Stage only the experiment's changed files, inspect the staged diff, and commit with `[iter N] <short description of optimization direction>` when the task permits commits. Otherwise keep the code snapshot and record that it is uncommitted.
 
-**Steps 2 and 3 MUST be the next two tool calls after step 1 — no ncu, no probes, no reads, no planning the next iter between them.** A failed or partial bench is still an iter; log + commit first, debug after. This is the most-missed step in practice: agents read the bench result and telescope into next-iter analysis (probes, ncu, hypothesis forming) without closing out the current one, leaving commit gaps with `ITERATIONS.md` entries written from memory later.
+Finish the log and snapshot/commit before starting the next hypothesis. Tool-call counts are not part of the protocol: Codex may use several calls to read evidence, stage, and commit. A failed or partial bench is still an iteration; preserve its actual output and failure before debugging. Never invent missing results from memory.
 
-Backstop: if you catch yourself starting a new iter (Editing `solution/`, or running ncu/probes for the next direction) and `git log -1` doesn't show `[iter N] ...`, stop and finish the prior iter's steps 2 and 3 first. Related experiments that belong together narratively get grouped in `ITERATIONS.md` analysis prose, not in batched git commits.
+After an interruption or context compaction, read `HINTS.md`, `ITERATIONS.md`, the latest trajectory, and Git status/history. Reconcile any measured but unlogged iteration before editing again. Never rerun a completed label over its evidence. Use a fresh retry label and account for it within the original budget.
 
 Profile to identify bottlenecks — see "ncu profiling" below for the ncu workflow and analytical fallback. Do not optimize blindly.
 
@@ -129,7 +129,7 @@ Caching the reference's *runtime* across iterations is sound only on a clock-loc
 When 3 consecutive iterations show no improvement (≥3% over current best), pause the loop and re-assess before iter N+1. Re-assessment combines:
 
 - **Re-profile** with `ncu` if available, or re-read runtime stats from `ITERATIONS.md` (median vs min/mean, distribution shape) if not.
-- **WebSearch** for op-specific best-known techniques / numbers on the same hardware class.
+- Use the host's available search tools for op-specific techniques on the same hardware class when network access is allowed; otherwise use local references.
 - **Review `ITERATIONS.md`** for patterns (which axes have been tried, which haven't, where prior wins came from).
 
 Default outcome: pick a new direction and continue. Only escalate to stop (see next section) if re-assessment produces concrete evidence the current state is at a physical floor.
@@ -138,24 +138,24 @@ Default outcome: pick a new direction and continue. Only escalate to stop (see n
 
 Legitimate triggers:
 
-1. User-specified iteration cap reached (in prompt or `HINTS.md`).
+1. The user stops the task, or the agreed iteration, time, or cost budget is reached (in the prompt or `HINTS.md`). Never extend it automatically.
 2. Stall re-assessment produced hard evidence of a floor — e.g., min runtime at cuda-event timer resolution, kernel arithmetic at HBM bandwidth limit, launch overhead dominating compute. Cite the evidence in `ITERATIONS.md`.
 3. All viable directions exhausted: document at least 3 distinct directions tried (with their iteration numbers) in `ITERATIONS.md` before invoking this trigger, to prevent premature stops.
 
-Do not stop silently because tooling is unavailable — that's a re-assessment input, not a stop reason.
+A missing optional profiler permits analytical reassessment. A missing required evaluator, GPU authorization, or correctness oracle prevents promotion: preserve the current evidence and state the blocker instead of claiming success.
 
 ### HEAD handling on stop
 
-After deciding to stop, leave HEAD at the best-performing iter — not necessarily the latest. Procedure:
+When finishing within the authorized task, restore the best correct implementation, not necessarily the latest. Do not reset Git history or overwrite user edits. If the user explicitly stops work, stop immediately and report the current state; do not run a cleanup benchmark. Procedure:
 
 1. Identify the best iter by reading `ITERATIONS.md` Summary, the bench output for each iter under `trajectory/`, and your own reasoning notes. Useful signals from KernelBench output: median speedup, runtime std (consistency), min runtime (tail), `CORRECT` flag. Other bench harnesses expose different shapes — use what's available. Justify your pick in the commit message (e.g., "iter 4: best mean AND lowest min, while iter 6 ties on mean but has higher std").
 
 2. If best iter ≠ latest iter:
    - `git checkout <best-iter-sha> -- solution/` — verbatim copy, do NOT hand-reconstruct from memory or earlier notes.
-   - `bash scripts/bench.sh final` to sanity-verify on a fresh run.
+   - Run a full final verification with a new label, preserving every earlier run. Budget for this verification before the optimization budget is exhausted.
    - `git commit -m "[final] Restore iter-K (X.XXx) — <one-sentence why>"`.
 
-The `git checkout` step is mandatory. Manual reconstruction risks introducing silent drift from the actually-benched code.
+Restore verbatim from the recorded commit or immutable snapshot; manual reconstruction risks drift. Even when the best iteration is already current, run the full final verification or explicitly report it as pending. A failed final gate leaves the candidate unaccepted.
 
 ## ncu profiling — best effort, not a gate
 
