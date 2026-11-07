@@ -29,6 +29,7 @@
 - [What You Provide](#what-you-provide)
 - [Install](#install)
 - [How to Use](#how-to-use)
+- [Apple Silicon / Metal](#apple-silicon--metal)
 - [Requirements](#requirements)
 - [How It Works](#how-it-works)
 - [Results](#results)
@@ -43,7 +44,7 @@
 
 ## What is AKO4ALL?
 
-**AKO4ALL is automated GPU kernel optimization, packaged as a single [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill.** Drop a kernel into your working directory, invoke the skill, and the agent bootstraps a workspace in place and iteratively rewrites the kernel for maximum performance — profile, edit, benchmark, repeat, until the kernel stops getting faster. The skill is a single `SKILL.md` protocol document; other coding agents can drive the same loop by following it directly.
+**AKO4ALL is automated GPU kernel optimization, packaged as a skill for [Codex](https://learn.chatgpt.com/docs/build-skills) and [Claude Code](https://docs.anthropic.com/en/docs/claude-code).** Drop a kernel into your working directory, invoke the skill, and the agent bootstraps a workspace in place and iteratively rewrites the kernel for maximum performance — profile, edit, benchmark, repeat, until the kernel stops getting faster. The skill is a single `SKILL.md` protocol document; other coding agents can drive the same loop by following it directly.
 
 <p align="center">
   <img src="assets/hero.png" alt="A cartoon robot agent at a single workshop bench iterates on a glowing GPU kernel cube — with iteration logbook, profiler, timer, and commit stamp at hand, and a speedup chart on the chalkboard — illustrating AKO4ALL's single-session, drop-in kernel optimization loop." width="780" />
@@ -51,7 +52,7 @@
 
 **AKO4ALL vs [AKO4X](https://github.com/TongmingLAIC/AKO4X)** — two sibling projects with different framings.
 
-- **Form:** AKO4ALL is a single Claude Code skill that runs in place in your working directory. AKO4X is a template repository that builds a fresh isolated child environment for each run.
+- **Form:** AKO4ALL is a single coding-agent skill that runs in place in your working directory. AKO4X is a template repository that builds a fresh isolated child environment for each run.
 - **Unit of work:** AKO4ALL is *one continuous optimization run on one kernel* — resumable across chat sessions, but with no memory carried into the next run on the same kernel. AKO4X is a *multi-round campaign on one operator* — a persistent master agent spawns rounds back-to-back, and a per-operator archive accumulates each round's results so the Nth round is informed by all earlier rounds.
 - **Harness evolution:** AKO4ALL's protocol is static — you can supply behavior directives, but the skill itself does not change. AKO4X has an opt-in *harness co-evolution* mode in which the agent, after each round, can propose improvements to its own knowledge and tooling layer that the master gates and applies — no analogue here.
 
@@ -70,6 +71,29 @@ A kernel and at least one set of test inputs are required. Everything else is op
 
 ## Install
 
+### Codex
+
+From a checkout of this branch, install a self-contained copy:
+
+```bash
+python3 tools/install_codex_skill.py
+```
+
+The default destination is `~/.agents/skills/ako4all`. Existing installations are
+never overwritten; `--dest` selects another skill folder and `--dry-run` previews
+it. The installer uses Python's standard library and does not install a GPU
+runtime or change Codex settings. See [Codex usage and recovery](references/codex.md).
+
+In your kernel workspace, invoke:
+
+```text
+Use $ako4all to optimize source/kernel.py against source/reference.py.
+Use our existing benchmark, keep its acceptance rules fixed, and run at most
+10 iterations plus full final verification. GPU use for these tests is authorized.
+```
+
+### Claude Code
+
 Clone the repo directly into Claude Code's skills directory:
 
 ```bash
@@ -86,7 +110,7 @@ ln -s /path/to/AKO4ALL ~/.claude/skills/ako4all
 
 ### Mode 1 — Interactive (default)
 
-Open Claude Code in a directory containing your kernel, then ask it to optimize the kernel. Files in the working directory are inspected automatically; you can also point at external paths. Optional constraints — iteration cap, language preference, dependency policy, etc. — included in the prompt will be merged into `HINTS.md`.
+Open Codex or Claude Code in a directory containing your kernel, then ask it to optimize the kernel. Files in the working directory are inspected automatically; you can also point at external paths. Optional constraints — iteration cap, language preference, dependency policy, etc. — included in the prompt will be merged into `HINTS.md`.
 
 The skill presents a resolved plan, asks if anything is genuinely ambiguous, and starts iterating. You can interrupt at any point to redirect.
 
@@ -107,7 +131,7 @@ If you want the conventional layout the skill recognizes:
 └── HINTS.md                     # Agent directives (optional)
 ```
 
-These are conventions, not requirements. If your files are organized differently, just point Claude at them.
+These are conventions, not requirements. If your files are organized differently, just point the agent at them.
 
 </details>
 
@@ -117,10 +141,46 @@ For optimizing several related kernels in parallel, in Claude Code the main agen
 
 > ⚠️ **Subagents can't ask back.** In Claude Code, subagents lack `AskUserQuestion`. The main agent composes each subagent's prompt from your instructions plus what's in each kernel's directory; any decision you don't pin down there will fall to `SKILL.md` defaults. So include the things you care about (per-kernel paths, optional reference / inputs locations, language or iteration-cap constraints, custom branch names) — and let the rest default.
 
+## Apple Silicon / Metal
+
+The Metal route keeps native C++/Objective-C++/MSL runtimes and supports both
+kernel microbenchmarks and on-device inference qualification. Read
+[the Metal workflow](references/metal.md) before starting an experiment.
+
+`bench/metal/evaluate.py` runs existing correctness commands, holds the shared GPU
+lock, measures A1 B1 A2 B2, and produces a machine-readable acceptance report.
+Missing/failed checks and invalid/non-finite metrics cannot pass. It keeps raw
+logs, hashes the measured artifacts, and refuses to overwrite an evidence folder.
+No CUDA or PyTorch dependency is needed for this runner.
+
+For Kapitsa, `bench/metal/kapitsa.py` connects the existing `logit_dump` /
+`logit_compare.py` output gate and `kapitsa bench` measurements. Start from
+`bench/metal/kapitsa.example.json`, set real paths and the agreed thresholds,
+and add the repository-required small-size shader-validation command.
+
+```bash
+# Configuration validation only: no GPU or model is used.
+python3 bench/metal/evaluate.py bench/metal/kapitsa.example.json \
+  --out /path/to/new/evidence --dry-run
+```
+
+```text
+Use $ako4all to optimize the Metal kernel in this Kapitsa worktree for on-device
+inference. Follow AGENTS.md, use our fixed output gate and A/B benchmark, and run
+at most 10 iterations plus final verification. GPU/model use requires the task's
+explicit authorization. Keep every trial and retain only an accepted candidate.
+```
+
+CPU fixtures exercise the runner and adapter. **Not verified on a GPU:** this
+branch does not claim Metal correctness, model parity, or a speedup without a
+real authorized run. The supplied quick inference adapter does not replace server,
+long-context, or other model coverage required by the target repository.
+
 ## Requirements
 
-- A coding agent (e.g., [Claude Code](https://docs.anthropic.com/en/docs/claude-code))
-- NVIDIA GPU with CUDA-enabled PyTorch (only for the built-in evaluator; a remote-execution bench script may not need either locally)
+- Codex or Claude Code with access to the chosen benchmark environment
+- CUDA route: NVIDIA GPU with CUDA-enabled PyTorch for the built-in KernelBench evaluator.
+- Metal route: Apple Silicon macOS, Python 3.9+, and the target project's native build/test tools; no PyTorch requirement. A remote custom benchmark uses its own prerequisites.
 - Python **>= 3.10** for the built-in evaluator (or whatever your custom bench script requires)
 - NVIDIA Nsight Compute (`ncu`) — recommended; its version must match your CUDA / PyTorch CUDA build. If unavailable, the loop still proceeds (no profiling — the agent reasons from runtime stats instead).
 - Git
@@ -129,9 +189,12 @@ For optimizing several related kernels in parallel, in Claude Code the main agen
 
 ## How It Works
 
-The agent creates an `opt/<kernel>` branch, copies your kernel to `solution/`, and generates `scripts/bench.sh` to wrap your benchmark. After verifying the baseline (and profiling it with `ncu` if available), it iterates: edit `solution/` → benchmark → log → commit. After 3 stagnant iterations it re-profiles, plans the next direction, and continues. Defaults like the stall threshold live in `HINTS.md`; iteration history lives in `ITERATIONS.md`. See [`SKILL.md`](SKILL.md) for the full protocol.
+The agent reuses the task branch or creates one following repository conventions (`codex/opt-<kernel>` in Codex, `opt/<kernel>` in Claude Code), copies your kernel to `solution/`, and generates `scripts/bench.sh` to wrap your benchmark. After verifying the baseline (and profiling it with `ncu` if available), it iterates: edit `solution/` → benchmark → log → commit. After 3 stagnant iterations it re-profiles, plans the next direction, and continues. Defaults like the stall threshold live in `HINTS.md`; iteration history lives in `ITERATIONS.md`. See [`SKILL.md`](SKILL.md) for the full protocol.
 
 ## Results
+
+The measurements below are upstream Claude/CUDA results. Codex packaging is
+covered by CPU-only tests; no Codex GPU performance result is claimed here.
 
 <details>
 <summary><b>A drop-in skill that turns one prompt into an expert-beating kernel in under an hour — a clean sweep over FlashInfer's expert on all 4 inference ops.</b></summary>
@@ -198,20 +261,26 @@ Create `.claude/settings.local.json`:
 
 </details>
 
-For other agents, consult their documentation on permission / auto-approve settings.
+For Codex, see [noninteractive execution](references/codex.md#run-from-a-script). The skill respects existing permission settings and repository rules; installing it does not authorize GPU runs or publication.
 
 ## Repo Layout
 
 ```
 AKO4ALL/
-├── SKILL.md              # Entry point — loaded by Claude Code when the skill triggers
+├── SKILL.md              # Shared Codex / Claude Code workflow
+├── agents/openai.yaml    # Codex skill metadata
+├── references/           # Codex usage and Metal/inference workflow
+├── tools/                # Skill installer
+├── tests/                # CPU-only packaging regressions
 ├── HINTS.md              # Scaffold: agent behavior defaults
 ├── ITERATIONS.md         # Scaffold: iteration log template
 ├── bench-wrapper.sh      # Scaffold: bench script template
-└── bench/kernelbench/    # Scaffold: built-in KernelBench evaluator
+└── bench/
+    ├── kernelbench/     # CUDA KernelBench evaluator
+    └── metal/           # A/B gate runner and Kapitsa adapter
 ```
 
-Scaffold files are copied into each workspace on first bootstrap, never overwriting existing files. `README.md`, `LICENSE`, and `assets/` are project metadata — not installed anywhere.
+Scaffold files are copied into each workspace on first bootstrap, never overwriting existing files. `README.md` and `assets/` remain in the source checkout. The Codex installer includes `LICENSE` with the runtime resources.
 
 ## Example: SOL-ExecBench
 
@@ -254,7 +323,7 @@ For ad-hoc optimization of several kernels at once, see [Mode 2](#mode-2--batch-
 Agent laziness is a known failure mode (staying in PyTorch, only tuning configurations, skipping profiling). Intervene with specific guidance, or add directives to `HINTS.md` ahead of time. The point of the loop is to *rewrite* the kernel — switch languages (Triton → CUDA, etc.) when it helps.
 
 **3. Which model should I use?**
-Model capability strongly influences optimization quality. We recommend [Claude Opus](https://docs.anthropic.com/en/docs/about-claude/models).
+Use your chosen coding model. AKO4ALL does not select or override it. The reported historical measurements used Claude; this branch adds Codex compatibility without claiming equivalent measured performance.
 
 **4. How do I cap iterations?**
 By default there is no cap — the agent decides when to stop on its own. To enforce a limit, add a directive to `HINTS.md`, or include it in your prompt (e.g., `Optimize for up to 30 iterations. Stop early only if all viable approaches are exhausted.`).

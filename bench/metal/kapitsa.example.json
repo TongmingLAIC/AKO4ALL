@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "scope": "inference",
+  "contract": {
+    "workload": "Kapitsa quick protocol; record the local model revision, drafter, flags, and both commits before running",
+    "inputs": "Repository frozen corpus and logit reference prefixes; existing local model folder only",
+    "precision": "Unmodified repository logit_compare.py noise-floor gate; no precision or floor changes",
+    "timing": "Client-observed quick benchmark, uninstrumented, idle Mac; A1 B1 A2 B2"
+  },
+  "pairs": 2,
+  "timeout_seconds": 1800,
+  "primary_metric": "decode_tps",
+  "metrics": {
+    "decode_tps": {"direction": "higher", "min_speedup_pct": 3, "max_regression_pct": 0},
+    "prefill_4000_tps": {"direction": "higher", "min_speedup_pct": 0, "max_regression_pct": 0},
+    "ttft_4000_ms": {"direction": "lower", "min_speedup_pct": 0, "max_regression_pct": 0},
+    "followup_4000_ms": {"direction": "lower", "min_speedup_pct": 0, "max_regression_pct": 0}
+  },
+  "artifacts": {
+    "baseline": ["/path/to/base/build/kapitsa", "/path/to/base/build/logit_dump"],
+    "candidate": ["/path/to/new/build/kapitsa", "/path/to/new/build/logit_dump"]
+  },
+  "checks": [{
+    "command": ["python3", "/path/to/AKO4ALL/bench/metal/kapitsa.py", "check",
+      "--baseline-build", "/path/to/base/build", "--candidate-build", "/path/to/new/build",
+      "--repo", "/path/to/new", "--model", "/path/to/local-model", "--evidence", "{run_dir}/logits"]
+  }],
+  "baseline": {
+    "command": ["python3", "/path/to/AKO4ALL/bench/metal/kapitsa.py", "bench",
+      "--binary", "/path/to/base/build/kapitsa", "--model", "/path/to/local-model",
+      "--out", "{run_dir}/{label}.bench.json"]
+  },
+  "candidate": {
+    "command": ["python3", "/path/to/AKO4ALL/bench/metal/kapitsa.py", "bench",
+      "--binary", "/path/to/new/build/kapitsa", "--model", "/path/to/local-model",
+      "--out", "{run_dir}/{label}.bench.json"]
+  }
+}
