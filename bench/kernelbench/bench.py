@@ -399,11 +399,18 @@ def load_custom_model_with_tempfile(model_custom_src, entry_point="ModelNew"):
         tempfile_path = tmp_file.name
         temp_file = tmp_file
 
-    spec = importlib.util.spec_from_file_location("temp_module", tempfile_path)
-    temp_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(temp_module)
-
-    ModelNew = getattr(temp_module, entry_point)
+    try:
+        spec = importlib.util.spec_from_file_location("temp_module", tempfile_path)
+        temp_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(temp_module)
+        ModelNew = getattr(temp_module, entry_point)
+    except Exception:
+        # Clean up the tempfile if loading fails, otherwise it leaks
+        try:
+            os.remove(tempfile_path)
+        except OSError:
+            pass
+        raise
     return ModelNew, temp_file
 
 
