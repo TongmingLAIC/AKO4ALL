@@ -644,9 +644,19 @@ def eval_kernel_against_ref(
         print(f"[Eval] Start Evaluation! on device: {device}")
         print("[Eval] Loading Original Model")
 
-    Model, ref_get_init_inputs, ref_get_inputs = load_original_model_and_inputs(
+    result = load_original_model_and_inputs(
         original_model_src, context, source_path=ref_path
     )
+    if result is None:
+        msg = "Failed to load original model (syntax or execution error)"
+        print(f"[Eval] {msg}")
+        metadata["error"] = "original_model_load_failed"
+        metadata["error_message"] = msg
+        return KernelExecResult(
+            compiled=False, correct=False, runtime=-1, ref_runtime=-1,
+            speedup=-1, metadata=metadata,
+        )
+    Model, ref_get_init_inputs, ref_get_inputs = result
 
     # Override chain: explicit override > definition inside reference file.
     # get_inputs is required (no sensible default); get_init_inputs defaults to [].
